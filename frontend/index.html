@@ -1,0 +1,1376 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Bridge — Build together. Give back.</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+            :root {
+                --bg: #f5f6f8;
+                --ink: #202834;
+                --muted: #7d8492;
+                --purple: #7055dc;
+                --line: #e9eaf0;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--ink);
+                font-family: "DM Sans", sans-serif;
+                font-size: 14px;
+            }
+            button,
+            input,
+            select,
+            textarea {
+                font: inherit;
+            }
+            button {
+                cursor: pointer;
+            }
+            button:hover {
+                filter: brightness(0.97);
+            }
+            button:focus-visible,
+            a:focus-visible {
+                outline: 3px solid #a99aee;
+                outline-offset: 3px;
+            }
+            button {
+                border: 0;
+                background: none;
+                color: inherit;
+            }
+            aside {
+                width: 230px;
+                background: white;
+                height: 100vh;
+                position: fixed;
+                padding: 36px 22px;
+                border-right: 1px solid var(--line);
+                display: flex;
+                flex-direction: column;
+            }
+            .logo {
+                font:
+                    800 29px Manrope,
+                    sans-serif;
+                letter-spacing: -1.5px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            .symbol {
+                display: inline-grid;
+                place-items: center;
+                background: var(--purple);
+                color: white;
+                border-radius: 11px;
+                width: 35px;
+                height: 35px;
+                font-size: 25px;
+                letter-spacing: -8px;
+                padding-right: 8px;
+            }
+            .sub {
+                color: var(--muted);
+                font-size: 11px;
+                letter-spacing: 1.5px;
+                font-weight: 700;
+                margin: 42px 12px 15px;
+            }
+            .nav {
+                display: flex;
+                align-items: center;
+                gap: 13px;
+                width: 100%;
+                padding: 14px 15px;
+                border-radius: 9px;
+                color: #7a8190;
+                text-align: left;
+                margin-bottom: 7px;
+            }
+            .nav.active {
+                color: var(--purple);
+                background: #f0ecfc;
+                font-weight: 700;
+            }
+            .nav span {
+                font-size: 19px;
+                width: 22px;
+            }
+            .sidebarfoot {
+                margin-top: auto;
+            }
+            .campus {
+                background: #f7f7fa;
+                padding: 16px;
+                border-radius: 12px;
+                font-size: 12px;
+                line-height: 1.8;
+            }
+            .campus b {
+                display: block;
+            }
+            .user {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                margin-top: 24px;
+            }
+            .avatar {
+                border-radius: 50%;
+                background: #e9e3fc;
+                color: #7055bc;
+                display: grid;
+                place-items: center;
+                width: 39px;
+                height: 39px;
+                font-weight: 700;
+                flex-shrink: 0;
+            }
+            .user small {
+                display: block;
+                color: var(--muted);
+                margin-top: 4px;
+            }
+            main {
+                margin-left: 230px;
+                padding: 0 40px 40px;
+                max-width: 1700px;
+            }
+            header {
+                height: 90px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid var(--line);
+            }
+            header small {
+                color: var(--muted);
+            }
+            .topright {
+                display: flex;
+                gap: 18px;
+                align-items: center;
+            }
+            .status {
+                font-size: 11px;
+                color: #6b7682;
+                border: 1px solid #e0e4e9;
+                padding: 6px 10px;
+                border-radius: 20px;
+            }
+            .dot {
+                color: #55a780;
+            }
+            .pageheading {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin: 30px 0 24px;
+            }
+            h1 {
+                font: 800 28px Manrope;
+                margin: 0 0 9px;
+                letter-spacing: -1px;
+            }
+            p {
+                color: var(--muted);
+                line-height: 1.6;
+            }
+            h2 {
+                font: 800 16px Manrope;
+                margin: 0;
+            }
+            h3 {
+                font: 800 21px Manrope;
+                letter-spacing: -0.6px;
+                margin: 13px 0;
+            }
+            .primary {
+                background: var(--purple);
+                color: white;
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-weight: 600;
+            }
+            .outline {
+                border: 1px solid #e2e3eb;
+                background: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+            }
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 18px;
+                margin-bottom: 26px;
+            }
+            .stat {
+                background: white;
+                border: 1px solid var(--line);
+                padding: 20px;
+                border-radius: 12px;
+            }
+            .stathead {
+                display: flex;
+                justify-content: space-between;
+                color: #838998;
+                font-size: 12px;
+            }
+            .stat strong {
+                font: 800 27px Manrope;
+                display: block;
+                margin: 10px 0 8px;
+            }
+            .stat small {
+                font-size: 11px;
+                color: #8c929e;
+            }
+            .green {
+                color: #4e997c !important;
+            }
+            .purple {
+                color: var(--purple) !important;
+            }
+            .layout {
+                display: grid;
+                grid-template-columns: minmax(400px, 1fr) 310px;
+                gap: 24px;
+            }
+            .panel {
+                border: 1px solid var(--line);
+                background: white;
+                border-radius: 13px;
+                overflow: hidden;
+            }
+            .panelhead {
+                padding: 22px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .panelhead small {
+                color: var(--muted);
+                font-size: 11px;
+            }
+            .link {
+                color: var(--purple);
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .tabs {
+                display: flex;
+                gap: 4px;
+                background: #f5f4f8;
+                padding: 4px;
+                border-radius: 8px;
+            }
+            .tabs button {
+                padding: 8px 13px;
+                border-radius: 6px;
+                font-size: 12px;
+                color: #92939e;
+            }
+            .tabs button.selected {
+                background: white;
+                color: var(--purple);
+                box-shadow: 0 1px 4px #2520450c;
+            }
+            .feedbody {
+                padding: 0 23px 22px;
+            }
+            .projectart {
+                height: 156px;
+                border-radius: 10px;
+                background: #eeecf9;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .artgrid {
+                position: absolute;
+                inset: 0;
+                background-image: linear-gradient(#d9d4ee66 1px, transparent 1px),
+                    linear-gradient(90deg, #d9d4ee66 1px, transparent 1px);
+                background-size: 27px 27px;
+                transform: rotate(-8deg) scale(1.3);
+            }
+            .artshape {
+                width: 90px;
+                height: 90px;
+                border: 17px solid #a59ad1;
+                border-radius: 24px;
+                transform: rotate(-25deg);
+                box-shadow:
+                    25px 22px 0 -3px #d0c7e9,
+                    -42px 12px 0 -12px #bfb2df;
+            }
+            .badge {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                padding: 6px 9px;
+                border-radius: 5px;
+                display: inline-block;
+                background: #eeebfc;
+                color: var(--purple);
+            }
+            .projectart .badge {
+                position: absolute;
+                left: 15px;
+                top: 15px;
+                background: white;
+            }
+            .projectart small {
+                position: absolute;
+                right: 14px;
+                bottom: 12px;
+                font-size: 10px;
+                color: #6c608e;
+            }
+            .projectmeta {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 20px;
+                align-items: center;
+            }
+            .projectdesc {
+                font-size: 13px;
+                min-height: 42px;
+                margin: 0 0 15px;
+            }
+            .chips {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .chip {
+                font-size: 11px;
+                padding: 6px 10px;
+                background: #f4f5f7;
+                border-radius: 5px;
+                color: #6e7583;
+            }
+            .facts {
+                display: flex;
+                gap: 20px;
+                font-size: 11px;
+                color: #858b96;
+                margin: 19px 0;
+            }
+            .why {
+                padding: 12px;
+                background: #f6f3ff;
+                color: #81709b;
+                font-size: 11px;
+                border-radius: 7px;
+                line-height: 1.7;
+            }
+            .why b {
+                color: var(--purple);
+            }
+            .swipeactions {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+                margin: 21px 0 13px;
+            }
+            .round {
+                border: 1px solid #e7e7ed;
+                border-radius: 50%;
+                width: 47px;
+                height: 47px;
+                color: #858b97;
+                font-size: 22px;
+            }
+            .matchbtn {
+                padding: 14px 30px;
+                background: var(--purple);
+                border-radius: 26px;
+                color: white;
+                font-weight: 600;
+            }
+            .feedfoot {
+                text-align: center;
+                font-size: 10px;
+                color: #a1a4ae;
+            }
+            .side {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            .tier {
+                padding: 22px;
+            }
+            .tiermark {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: #fff4dc;
+                display: grid;
+                place-items: center;
+                font-size: 25px;
+                margin-bottom: 15px;
+            }
+            .tier h3 {
+                font-size: 18px;
+            }
+            .progress {
+                height: 6px;
+                background: #efedf5;
+                border-radius: 8px;
+                margin: 15px 0 10px;
+                overflow: hidden;
+            }
+            .progress span {
+                height: 100%;
+                display: block;
+                background: var(--purple);
+                border-radius: 8px;
+            }
+            .tier p {
+                font-size: 11px;
+                margin: 5px 0;
+            }
+            .rankrow {
+                display: flex;
+                gap: 11px;
+                align-items: center;
+                margin: 18px 0;
+                font-size: 12px;
+            }
+            .rankrow .avatar {
+                width: 33px;
+                height: 33px;
+                font-size: 11px;
+            }
+            .rankrow .num {
+                width: 12px;
+                color: #999;
+            }
+            .rankrow b {
+                font-size: 12px;
+            }
+            .rankrow small {
+                font-size: 10px;
+                color: #999;
+                display: block;
+                margin-top: 4px;
+            }
+            .rankrow strong {
+                margin-left: auto;
+                font-size: 12px;
+            }
+            .yourow {
+                background: #f4f0ff;
+                padding: 12px 10px;
+                margin: 0 -10px -6px;
+                border-radius: 7px;
+            }
+            .below {
+                margin-top: 24px;
+            }
+            .quote {
+                padding: 0 22px 23px;
+            }
+            .quote p {
+                font-size: 13px;
+                color: #687182;
+            }
+            .quoteby {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 11px;
+            }
+            .quoteby small {
+                display: block;
+                color: #999;
+                margin-top: 4px;
+            }
+            .label {
+                font-size: 10px;
+                letter-spacing: 1.4px;
+                color: #9297a4;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+            .empty {
+                padding: 40px;
+                text-align: center;
+            }
+            .listcard {
+                padding: 20px;
+                border-top: 1px solid var(--line);
+            }
+            .listcard p {
+                font-size: 13px;
+            }
+            .modalback {
+                position: fixed;
+                inset: 0;
+                background: #24203e65;
+                backdrop-filter: blur(5px);
+                z-index: 5;
+                display: grid;
+                place-items: center;
+                padding: 20px;
+            }
+            .modal {
+                background: white;
+                border-radius: 20px;
+                padding: 32px;
+                width: 550px;
+                max-width: 100%;
+                max-height: 90vh;
+                overflow: auto;
+                box-shadow: 0 24px 90px #24203e30;
+            }
+            .modal h2 {
+                font-size: 24px;
+                margin: 12px 0;
+            }
+            .modal label {
+                display: block;
+                margin: 20px 0 9px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            input,
+            select,
+            textarea {
+                border: 1px solid #dedee8;
+                border-radius: 8px;
+                padding: 12px;
+                width: 100%;
+                background: white;
+                color: var(--ink);
+            }
+            textarea {
+                min-height: 100px;
+                resize: vertical;
+            }
+            .choice {
+                padding: 10px 14px;
+                border: 1px solid #e5e2ef;
+                border-radius: 8px;
+                font-size: 12px;
+                margin: 0 7px 8px 0;
+            }
+            .choice.on {
+                background: #eee8ff;
+                border-color: #8c76dc;
+                color: #694ec5;
+            }
+            .modalfooter {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 25px;
+                align-items: center;
+            }
+            .close {
+                float: right;
+                color: #8a8a9a;
+                font-size: 22px;
+            }
+            .toast {
+                position: fixed;
+                bottom: 25px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #272237;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                z-index: 10;
+                box-shadow: 0 5px 30px #0002;
+                max-width: 90vw;
+            }
+            .mobilebrand {
+                display: none;
+            }
+            .tablehead {
+                display: flex;
+                padding: 20px;
+                color: #9599a3;
+                font-size: 11px;
+                border-bottom: 1px solid var(--line);
+            }
+            .tiergrid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                margin-top: 20px;
+            }
+            .tierbox {
+                padding: 24px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                background: white;
+            }
+            .tierbox h3 {
+                font-size: 17px;
+            }
+            .helpnote {
+                font-size: 11px;
+                color: #9a9aa5;
+                margin-top: 20px;
+                line-height: 1.7;
+            }
+            @media (min-width: 1450px) {
+                .layout {
+                    grid-template-columns: minmax(400px, 1fr) 345px;
+                }
+                .projectart {
+                    height: 190px;
+                }
+            }
+            @media (max-width: 1100px) {
+                aside {
+                    width: 190px;
+                    padding: 30px 15px;
+                }
+                main {
+                    margin-left: 190px;
+                    padding: 0 24px 30px;
+                }
+                .layout {
+                    grid-template-columns: minmax(330px, 1fr) 270px;
+                }
+                .stats {
+                    gap: 10px;
+                }
+                .stat {
+                    padding: 16px;
+                }
+            }
+            @media (max-width: 850px) {
+                aside {
+                    width: 75px;
+                    padding: 25px 10px;
+                }
+                .logo {
+                    justify-content: center;
+                }
+                .logo em,
+                .sub,
+                .nav em,
+                .sidebarfoot {
+                    display: none;
+                }
+                .nav {
+                    padding: 14px;
+                    justify-content: center;
+                }
+                .nav span {
+                    width: auto;
+                }
+                main {
+                    margin-left: 75px;
+                    padding: 0 20px 30px;
+                }
+                .layout {
+                    grid-template-columns: 1fr;
+                }
+                .side {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                }
+                .stats {
+                    grid-template-columns: 1fr 1fr;
+                }
+                .tiergrid {
+                    grid-template-columns: 1fr 1fr;
+                }
+            }
+            @media (max-width: 520px) {
+                main {
+                    padding: 0 12px 25px;
+                }
+                .pageheading {
+                    align-items: flex-start;
+                    gap: 10px;
+                }
+                h1 {
+                    font-size: 22px;
+                }
+                .pageheading p {
+                    font-size: 12px;
+                }
+                .pageheading .outline {
+                    font-size: 11px;
+                    padding: 9px;
+                }
+                .side {
+                    display: flex;
+                }
+                .topright .status {
+                    display: none;
+                }
+                .panelhead {
+                    padding: 18px;
+                }
+                .feedbody {
+                    padding: 0 15px 18px;
+                }
+                .tabs button {
+                    padding: 7px;
+                }
+                .facts {
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+                .matchbtn {
+                    padding: 14px 18px;
+                }
+                .stat strong {
+                    font-size: 23px;
+                }
+                .tiergrid {
+                    grid-template-columns: 1fr;
+                }
+                .modal {
+                    padding: 22px;
+                }
+                .logo {
+                    font-size: 22px;
+                }
+                .symbol {
+                    width: 32px;
+                    height: 32px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <aside>
+            <div class="logo">
+                <span class="symbol">∩∩</span><em style="font-style: normal">bridge<span class="purple">.</span></em>
+            </div>
+            <div class="sub">YOUR WORKSPACE</div>
+            <nav id="nav"></nav>
+            <div class="sidebarfoot">
+                <div class="campus">
+                    ◈ &nbsp; Built for Buckeyes<b>Big ideas. Better together.</b
+                    ><span style="color: #999">Ohio State University</span>
+                </div>
+                <div class="user">
+                    <div class="avatar">AN</div>
+                    <div><b>Aryahi Nittur</b><small>Community mentor</small></div>
+                </div>
+            </div>
+        </aside>
+        <main>
+            <header>
+                <div>
+                    <b>Community workspace</b><br /><small
+                        >Ohio State University &nbsp; / &nbsp; <span id="crumb">Overview</span></small
+                    >
+                </div>
+                <div class="topright">
+                    <span class="status"><span class="dot">●</span> &nbsp; Interactive demo</span
+                    ><button title="Edit preferences" onclick="openOnboarding()" class="avatar">AN</button>
+                </div>
+            </header>
+            <div id="view"></div>
+            <p class="helpnote">
+                Demo community · Sample people and projects · Changes are saved in this browser. AWS is not connected.
+            </p>
+        </main>
+        <div id="overlay"></div>
+        <div id="toast"></div>
+        <script>
+            const projects = [
+                {
+                    id: 1,
+                    title: "A fresher future for campus food",
+                    org: "Sustainability × Computer Science",
+                    desc: "Help an interdisciplinary team build a food-waste monitor for campus kitchens.",
+                    skills: ["Python", "Computer Vision"],
+                    topic: "Sustainability",
+                    time: 20,
+                    type: "Code review",
+                    weeks: 4,
+                    people: "3 students · 2 majors",
+                    color: "#eeecf9",
+                    need: "Review our food-detection pipeline",
+                    mentor: "Industry mentor: Jordan · Food systems",
+                },
+                {
+                    id: 2,
+                    title: "Make campus easier to navigate",
+                    org: "Design × Engineering",
+                    desc: "Build an accessible campus map with designers, engineers, and students with lived experience.",
+                    skills: ["Design", "JavaScript"],
+                    topic: "Accessibility",
+                    time: 30,
+                    type: "Feedback",
+                    weeks: 6,
+                    people: "4 students · 3 majors",
+                    color: "#e8f2f0",
+                    need: "Give feedback on our navigation prototype",
+                    mentor: "Industry mentor: Sam · Product design",
+                },
+                {
+                    id: 3,
+                    title: "Small robots. Big possibilities.",
+                    org: "Engineering × Education",
+                    desc: "Create a hands-on robotics kit that makes engineering approachable for local classrooms.",
+                    skills: ["Robotics", "Python"],
+                    topic: "Education",
+                    time: 20,
+                    type: "Mentoring",
+                    weeks: 5,
+                    people: "3 students · 2 majors",
+                    color: "#f9efe1",
+                    need: "Help troubleshoot robot movement",
+                    mentor: "Industry mentor: Alex · Automation",
+                },
+                {
+                    id: 4,
+                    title: "Turn campus data into stories",
+                    org: "Business × Data Science",
+                    desc: "Make student spending data useful through clear visualizations and thoughtful research.",
+                    skills: ["Data Analysis", "Design"],
+                    topic: "Community",
+                    time: 15,
+                    type: "Feedback",
+                    weeks: 4,
+                    people: "4 students · 3 majors",
+                    color: "#ecf0fa",
+                    need: "Review our dashboard and research questions",
+                    mentor: "Industry mentor: Taylor · Analytics",
+                },
+                {
+                    id: 5,
+                    title: "A better way to find your people",
+                    org: "Psychology × Computer Science",
+                    desc: "Help first-year students discover small campus communities around shared interests.",
+                    skills: ["JavaScript", "Design"],
+                    topic: "Community",
+                    time: 20,
+                    type: "Code review",
+                    weeks: 6,
+                    people: "3 students · 3 majors",
+                    color: "#f5eaf1",
+                    need: "Review our community discovery interface",
+                    mentor: "Industry mentor: Casey · Software",
+                },
+            ];
+            const defaults = {
+                onboarded: false,
+                skills: ["Python", "Robotics"],
+                topics: ["Sustainability", "Education"],
+                minutes: 30,
+                mode: "help",
+                goal: "Both",
+                helps: 12,
+                passed: [],
+                saved: [],
+                offers: [],
+                joined: [],
+                confirmed: [],
+                reviews: [],
+            };
+            let state;
+            try {
+                state = { ...defaults, ...JSON.parse(localStorage.getItem("bridge-v1") || "{}") };
+            } catch {
+                state = { ...defaults };
+            }
+            let page = "Overview",
+                step = 0,
+                draft = {},
+                dragStart = null;
+            const esc = (s) =>
+                String(s).replace(
+                    /[&<>"']/g,
+                    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+                );
+            const save = () => localStorage.setItem("bridge-v1", JSON.stringify(state));
+            const tier = () =>
+                state.helps >= 25
+                    ? "Community Champion"
+                    : state.helps >= 10
+                      ? "Connector"
+                      : state.helps >= 3
+                        ? "Contributor"
+                        : "New Neighbor";
+            function toast(msg) {
+                document.getElementById("toast").innerHTML = '<div class="toast" role="status">' + esc(msg) + "</div>";
+                clearTimeout(window.tt);
+                window.tt = setTimeout(() => (document.getElementById("toast").innerHTML = ""), 3500);
+            }
+            function navigate(p) {
+                page = p;
+                render();
+            }
+            function score(p) {
+                let matches = p.skills.filter((x) => state.skills.includes(x)).length;
+                return Math.round(
+                    (40 * matches) / p.skills.length +
+                        25 * Math.min(1, state.minutes / p.time) +
+                        20 * (state.topics.includes(p.topic) ? 1 : 0) +
+                        15
+                );
+            }
+            function feed() {
+                return projects
+                    .filter(
+                        (p) =>
+                            !state.passed.includes(state.mode + p.id) &&
+                            !(state.mode === "help" ? state.offers : state.joined).includes(p.id) &&
+                            (state.mode !== "help" || p.time <= state.minutes)
+                    )
+                    .sort((a, b) => score(b) - score(a));
+            }
+            function rankRows(full = false) {
+                let users = [
+                    { name: "Maya Chen", field: "Design · Senior", n: 28, initials: "MC", color: "#f7e6dc" },
+                    { name: "Jordan Williams", field: "Engineering · Junior", n: 21, initials: "JW", color: "#e2ede7" },
+                    { name: "Sam Rivera", field: "Business · Senior", n: 17, initials: "SR", color: "#e8e6f5" },
+                    {
+                        name: "Aryahi Nittur",
+                        field: "You · Computer Science",
+                        n: state.helps,
+                        initials: "AN",
+                        color: "#e9e3fc",
+                        you: true,
+                    },
+                ].sort((a, b) => b.n - a.n);
+                return users
+                    .map(
+                        (u, i) =>
+                            '<div class="rankrow ' +
+                            (u.you ? "yourow" : "") +
+                            '"><span class="num">' +
+                            (i + 1) +
+                            '</span><div class="avatar" style="background:' +
+                            u.color +
+                            '">' +
+                            u.initials +
+                            "</div><div><b>" +
+                            u.name +
+                            "</b><small>" +
+                            u.field +
+                            "</small></div><strong>" +
+                            u.n +
+                            ' <span style="font-weight:400;color:#999;font-size:10px">helps</span></strong></div>'
+                    )
+                    .join("");
+            }
+            function render() {
+                document.getElementById("nav").innerHTML = [
+                    ["Overview", "◫"],
+                    ["Discover", "◇"],
+                    ["My connections", "♧"],
+                    ["Leaderboard", "↗"],
+                    ["My profile", "◎"],
+                ]
+                    .map(
+                        ([p, i]) =>
+                            '<button class="nav ' +
+                            (page === p ? "active" : "") +
+                            '" onclick="navigate(\'' +
+                            p +
+                            "')\"><span>" +
+                            i +
+                            '</span><em style="font-style:normal">' +
+                            p +
+                            "</em></button>"
+                    )
+                    .join("");
+                document.getElementById("crumb").textContent = page;
+                let html = "";
+                if (page === "Overview" || page === "Discover") {
+                    html =
+                        '<div class="pageheading"><div><h1>' +
+                        (page === "Overview" ? "Good things start together." : "Find your next connection.") +
+                        '</h1><p style="margin:0">' +
+                        (page === "Overview"
+                            ? "Find your next project. Share what you know. Make a difference."
+                            : "A little of your time can move someone’s project forward.") +
+                        '</p></div><button class="outline" onclick="openOnboarding()">⚙ &nbsp; Your preferences</button></div>';
+                    if (page === "Overview")
+                        html +=
+                            '<div class="stats"><div class="stat"><div class="stathead">Peers helped <span class="purple">♧</span></div><strong>' +
+                            state.helps +
+                            '</strong><small class="green">✓ Confirmed by your peers</small></div><div class="stat"><div class="stathead">Your community tier <span>✧</span></div><strong style="font-size:23px">' +
+                            tier() +
+                            '</strong><small>Every contribution counts</small></div><div class="stat"><div class="stathead">Active connections <span class="purple">◇</span></div><strong>' +
+                            (state.offers.length + state.joined.length) +
+                            '</strong><small>Building something together</small></div><div class="stat"><div class="stathead">Community standing <span>↗</span></div><strong>#' +
+                            ([28, 21, 17].filter((x) => x > state.helps).length + 1) +
+                            "</strong><small>Among 4 demo members</small></div></div>";
+                    html +=
+                        '<div class="layout"><div><section class="panel"><div class="panelhead"><h2>Your next connection</h2><div class="tabs"><button class="' +
+                        (state.mode === "join" ? "selected" : "") +
+                        '" onclick="setMode(\'join\')">Join a project</button><button class="' +
+                        (state.mode === "help" ? "selected" : "") +
+                        '" onclick="setMode(\'help\')">Give back</button></div></div>' +
+                        card() +
+                        '</section><section class="panel below"><div class="panelhead"><h2>Your reputation, in their words</h2><button class="link" onclick="navigate(\'My profile\')">View profile ↗</button></div><div class="quote"><p>“Aryahi breaks down tricky problems without making you feel behind. She helped us get our first working prototype, and made sure we understood why it worked.”</p><div class="quoteby"><div class="avatar" style="width:29px;height:29px;font-size:10px;background:#e2ede7">JL</div><div><b>Jamie Lee</b><small>Teammate · Campus robotics project · Sample endorsement</small></div><span class="badge" style="margin-left:auto">PEER WRITTEN</span></div></div></section></div><div class="side"><section class="panel tier"><div class="label">YOUR GROWTH</div><div class="tiermark" style="margin-top:18px">✧</div><h3>' +
+                        tier() +
+                        '</h3><p>You’re turning what you know into someone else’s next step.</p><div class="progress"><span style="width:' +
+                        Math.min(100, (state.helps / 25) * 100) +
+                        '%"></span></div><div style="display:flex;justify-content:space-between;font-size:10px;color:#8d8999"><span>' +
+                        state.helps +
+                        ' confirmed helps</span><span>25 to Champion</span></div><button class="link" style="padding:18px 0 0" onclick="navigate(\'Leaderboard\')">Explore the tiers →</button></section><section class="panel"><div class="panelhead"><h2>Community builders</h2><button class="link" onclick="navigate(\'Leaderboard\')">View all</button></div><div style="padding:0 22px 22px">' +
+                        rankRows() +
+                        '</div></section><div style="padding:0 5px"><div class="label">A LITTLE HELP GOES A LONG WAY</div><p style="font-size:12px">A code review. A fresh perspective. Twenty minutes can be someone’s breakthrough.</p></div></div></div>';
+                } else if (page === "Leaderboard") {
+                    html =
+                        '<div class="pageheading"><div><h1>Small acts. Lasting impact.</h1><p>Celebrating the people who help our community grow.</p></div></div><div class="layout"><section class="panel"><div class="panelhead"><h2>Community leaderboard</h2><span class="badge">ALL TIME</span></div><div style="padding:0 25px 25px">' +
+                        rankRows(true) +
+                        '</div></section><section class="panel tier"><h2>How helps count</h2><p>One completed request, confirmed by the receiving teammate, counts as one help. Sending an offer or swiping never earns a help.</p><p>Counts show participation, not a measure of someone’s ability or worth.</p></section></div><div class="tiergrid">' +
+                        [
+                            ["○", "New Neighbor", "0–2 helps"],
+                            ["✦", "Contributor", "3–9 helps"],
+                            ["✧", "Connector", "10–24 helps"],
+                            ["♛", "Community Champion", "25+ helps"],
+                        ]
+                            .map(
+                                (t) =>
+                                    '<div class="tierbox"><span style="font-size:28px;color:var(--purple)">' +
+                                    t[0] +
+                                    "</span><h3>" +
+                                    t[1] +
+                                    "</h3><p>" +
+                                    t[2] +
+                                    "</p></div>"
+                            )
+                            .join("") +
+                        "</div>";
+                } else if (page === "My connections") {
+                    let ids = [...new Set([...state.offers, ...state.joined])];
+                    html =
+                        '<div class="pageheading"><div><h1>Make a connection count.</h1><p>Follow through on your offers and build something together.</p></div></div><section class="panel"><div class="panelhead"><h2>Your projects & help offers</h2><span class="badge">' +
+                        ids.length +
+                        " CONNECTIONS</span></div>" +
+                        (ids.length
+                            ? ids
+                                  .map((id) => {
+                                      let p = projects.find((x) => x.id === id),
+                                          done = state.confirmed.includes(id);
+                                      return (
+                                          '<div class="listcard"><span class="badge">' +
+                                          (done
+                                              ? "HELP CONFIRMED"
+                                              : state.offers.includes(id)
+                                                ? "HELP OFFER SENT"
+                                                : "JOIN REQUEST SENT") +
+                                          "</span><h3>" +
+                                          p.title +
+                                          "</h3><p>" +
+                                          p.need +
+                                          " · " +
+                                          p.time +
+                                          " minutes</p><p>" +
+                                          (done
+                                              ? "Sample teammate confirmed your contribution. Your tier and leaderboard have updated."
+                                              : "Awaiting a response from the project team. For this prototype, you can simulate the receiving teammate confirming a completed help request.") +
+                                          "</p>" +
+                                          (state.offers.includes(id) && !done
+                                              ? '<button class="primary" onclick="confirmHelp(' +
+                                                id +
+                                                ')">Demo: teammate confirms completed help</button>'
+                                              : "") +
+                                          "</div>"
+                                      );
+                                  })
+                                  .join("")
+                            : '<div class="empty"><h3>Your next connection is waiting.</h3><p>Offer help or request to join a project in Discover.</p><button class="primary" onclick="navigate(\'Discover\')">Explore projects →</button></div>') +
+                        "</section>";
+                } else {
+                    html =
+                        '<div class="pageheading"><div><h1>Your story, told together.</h1><p>A profile built from what others experienced working with you.</p></div><button class="outline" onclick="openOnboarding()">Edit preferences</button></div><div class="layout"><section class="panel"><div style="padding:28px"><div class="avatar" style="width:72px;height:72px;font-size:23px">AN</div><h3>Aryahi Nittur</h3><p>Computer Science · Ohio State University</p><span class="badge">' +
+                        tier().toUpperCase() +
+                        '</span> <span class="chip">' +
+                        state.helps +
+                        ' confirmed helps</span><hr style="border:0;border-top:1px solid var(--line);margin:25px 0"><div class="label">WHAT PEERS SAY</div><p style="color:#515968">“Patient, practical, and always ready to work through a difficult problem together.”</p><small style="color:#999">Jamie Lee · Sample teammate endorsement</small>' +
+                        state.reviews
+                            .map(
+                                (r) =>
+                                    '<div style="border-top:1px solid var(--line);margin-top:22px;padding-top:12px"><p>“' +
+                                    esc(r.text) +
+                                    '”</p><small style="color:#999">' +
+                                    esc(r.author) +
+                                    " · Demo peer endorsement</small></div>"
+                            )
+                            .join("") +
+                        '<div style="margin-top:25px"><button class="outline" onclick="openReview()">Demo: write as a peer</button></div></div></section><section class="panel tier"><h2>How you like to contribute</h2><p>Skills you can share</p><div class="chips">' +
+                        state.skills.map((s) => '<span class="chip">' + esc(s) + "</span>").join("") +
+                        '</div><p>Topics you care about</p><div class="chips">' +
+                        state.topics.map((s) => '<span class="chip">' + esc(s) + "</span>").join("") +
+                        "</div><p>Up to " +
+                        state.minutes +
+                        " minutes per help session</p><p>Goal: " +
+                        esc(state.goal) +
+                        '</p><div class="why">Your preferences are self-selected. The profile descriptions above are written by peers.</div></section></div>';
+                }
+                document.getElementById("view").innerHTML = html;
+                let art = document.getElementById("projectcard");
+                if (art) {
+                    art.onpointerdown = (e) => {
+                        if (e.target.closest("button")) return;
+                        dragStart = e.clientX;
+                    };
+                    art.onpointerup = (e) => {
+                        if (dragStart === null) return;
+                        let dx = e.clientX - dragStart;
+                        dragStart = null;
+                        if (Math.abs(dx) > 80) act(dx > 0 ? "offer" : "pass");
+                    };
+                    art.onpointercancel = () => (dragStart = null);
+                }
+            }
+            function card() {
+                let list = feed(),
+                    p = list[0];
+                if (!p)
+                    return '<div class="empty"><h3>You’re all caught up.</h3><p>Adjust your preferences or revisit the sample projects.</p><button class="outline" onclick="state.passed=[];save();render()">Revisit passed projects</button> <button class="link" onclick="openOnboarding()">Edit preferences</button></div>';
+                let matched = p.skills.filter((x) => state.skills.includes(x));
+                return (
+                    '<div class="feedbody" id="projectcard" style="touch-action:pan-y"><div class="projectart" style="background:' +
+                    p.color +
+                    '"><div class="artgrid"></div><div class="artshape"></div><span class="badge">' +
+                    (state.mode === "help" ? "A LITTLE HELP NEEDED" : "BUILD SOMETHING MEANINGFUL") +
+                    "</span><small>" +
+                    esc(p.topic.toUpperCase()) +
+                    '</small></div><div class="projectmeta"><span class="label">' +
+                    p.org +
+                    '</span><span class="badge">' +
+                    score(p) +
+                    "% FIT</span></div><h3>" +
+                    p.title +
+                    '</h3><p class="projectdesc">' +
+                    (state.mode === "help" ? p.need + ". " + p.desc : p.desc) +
+                    '</p><div class="chips">' +
+                    p.skills.map((s) => '<span class="chip">' + s + "</span>").join("") +
+                    '<span class="chip">' +
+                    (state.mode === "help" ? p.type : "Student teammate") +
+                    '</span></div><div class="facts"><span>◷ ' +
+                    (state.mode === "help" ? p.time + " min of your time" : p.weeks + " week project") +
+                    "</span><span>♧ " +
+                    p.people +
+                    '</span></div><p style="font-size:11px;margin:-5px 0 14px">' +
+                    p.mentor +
+                    '</p><div class="why"><b>✧ &nbsp; Why this connection?</b><br>' +
+                    (matched.length
+                        ? "Your " + matched.join(" and ") + " skills match this team’s needs."
+                        : "Explore a team with a different skill set.") +
+                    " " +
+                    (state.topics.includes(p.topic)
+                        ? "You both care about " + p.topic.toLowerCase() + "."
+                        : "A chance to explore " + p.topic.toLowerCase() + ".") +
+                    '</div><div class="swipeactions"><button class="round" aria-label="Pass project" onclick="act(\'pass\')">×</button><button class="round" aria-label="Save project" onclick="act(\'save\')">' +
+                    (state.saved.includes(p.id) ? "★" : "☆") +
+                    '</button><button class="matchbtn" onclick="act(\'offer\')">' +
+                    (state.mode === "help" ? "♡ &nbsp; Offer to help" : "＋ &nbsp; Request to join") +
+                    '</button></div><div class="feedfoot">Swipe left to pass · Swipe right to connect · ' +
+                    list.length +
+                    " opportunities for you</div></div>"
+                );
+            }
+            function setMode(m) {
+                state.mode = m;
+                save();
+                render();
+            }
+            function act(a) {
+                let p = feed()[0];
+                if (!p) return;
+                if (a === "save") {
+                    if (!state.saved.includes(p.id)) {
+                        state.saved.push(p.id);
+                        toast("Saved. You can still offer help or join this project.");
+                    } else {
+                        state.saved = state.saved.filter((x) => x !== p.id);
+                        toast("Removed from saved projects.");
+                    }
+                } else if (a === "pass") {
+                    state.passed.push(state.mode + p.id);
+                } else {
+                    (state.mode === "help" ? state.offers : state.joined).push(p.id);
+                    toast(
+                        state.mode === "help"
+                            ? "Help offer sent! Follow up in My connections."
+                            : "Join request sent! See My connections."
+                    );
+                }
+                save();
+                render();
+            }
+            function confirmHelp(id) {
+                if (state.confirmed.includes(id)) return;
+                state.confirmed.push(id);
+                state.helps++;
+                save();
+                render();
+                toast("Teammate confirmation simulated. +1 confirmed help!");
+            }
+            function openOnboarding() {
+                draft = {
+                    skills: [...state.skills],
+                    topics: [...state.topics],
+                    minutes: state.minutes,
+                    goal: state.goal,
+                };
+                step = 0;
+                showOnboarding();
+            }
+            function toggleChoice(key, val) {
+                draft[key] = draft[key].includes(val) ? draft[key].filter((x) => x !== val) : [...draft[key], val];
+                showOnboarding();
+            }
+            function showOnboarding() {
+                let title = ["What brings you to Bridge?", "What can you share?", "Make it fit your life."][step],
+                    desc = [
+                        "Find your people through projects and small acts of help.",
+                        "Choose skills you can help someone practice. Every major belongs here.",
+                        "We’ll use these preferences to personalize your project feed.",
+                    ][step];
+                let content =
+                    step === 0
+                        ? "<label>Your goal</label>" +
+                          ["Join a project", "Mentor others", "Both"]
+                              .map(
+                                  (x) =>
+                                      '<button class="choice ' +
+                                      (draft.goal === x ? "on" : "") +
+                                      '" onclick="draft.goal=\'' +
+                                      x +
+                                      "';showOnboarding()\">" +
+                                      x +
+                                      "</button>"
+                              )
+                              .join("")
+                        : step === 1
+                          ? "<label>Skills you can share · select at least one</label>" +
+                            [
+                                "Python",
+                                "JavaScript",
+                                "Robotics",
+                                "Computer Vision",
+                                "Design",
+                                "Data Analysis",
+                                "Research",
+                                "Business",
+                            ]
+                                .map(
+                                    (x) =>
+                                        '<button class="choice ' +
+                                        (draft.skills.includes(x) ? "on" : "") +
+                                        "\" onclick=\"toggleChoice('skills','" +
+                                        x +
+                                        "')\">" +
+                                        x +
+                                        "</button>"
+                                )
+                                .join("")
+                          : "<label>Topics you care about · select at least one</label>" +
+                            ["Sustainability", "Accessibility", "Education", "Community"]
+                                .map(
+                                    (x) =>
+                                        '<button class="choice ' +
+                                        (draft.topics.includes(x) ? "on" : "") +
+                                        "\" onclick=\"toggleChoice('topics','" +
+                                        x +
+                                        "')\">" +
+                                        x +
+                                        "</button>"
+                                )
+                                .join("") +
+                            '<label for="time">Time available for a help session</label><select id="time" onchange="draft.minutes=Number(this.value)">' +
+                            [15, 20, 30, 60]
+                                .map(
+                                    (n) =>
+                                        "<option " +
+                                        (draft.minutes === n ? "selected" : "") +
+                                        ' value="' +
+                                        n +
+                                        '">' +
+                                        n +
+                                        " minutes</option>"
+                                )
+                                .join("") +
+                            "</select>";
+                document.getElementById("overlay").innerHTML =
+                    '<div class="modalback"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" aria-label="Close onboarding" onclick="closeModal()">×</button><div class="label purple">GET CONNECTED · STEP ' +
+                    (step + 1) +
+                    ' OF 3</div><h2 id="modalTitle">' +
+                    title +
+                    "</h2><p>" +
+                    desc +
+                    '</p><div class="progress"><span style="width:' +
+                    ((step + 1) / 3) * 100 +
+                    '%"></span></div>' +
+                    content +
+                    '<div class="modalfooter"><button class="link" onclick="' +
+                    (step ? "step--;showOnboarding()" : "closeModal()") +
+                    '">' +
+                    (step ? "← Back" : "Explore first") +
+                    '</button><button class="primary" onclick="nextStep()">' +
+                    (step === 2 ? "Find my connections →" : "Continue →") +
+                    "</button></div></section></div>";
+                document.querySelector(".modal .close").focus();
+            }
+            function nextStep() {
+                if (step === 1 && !draft.skills.length) {
+                    toast("Choose at least one skill.");
+                    return;
+                }
+                if (step === 2) {
+                    if (!draft.topics.length) {
+                        toast("Choose at least one topic.");
+                        return;
+                    }
+                    Object.assign(state, draft, { onboarded: true });
+                    if (draft.goal === "Join a project") state.mode = "join";
+                    if (draft.goal === "Mentor others") state.mode = "help";
+                    save();
+                    closeModal();
+                    render();
+                    toast("Your personalized feed is ready.");
+                } else {
+                    step++;
+                    showOnboarding();
+                }
+            }
+            function closeModal() {
+                document.getElementById("overlay").innerHTML = "";
+            }
+            function openReview() {
+                document.getElementById("overlay").innerHTML =
+                    '<div class="modalback"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" aria-label="Close" onclick="closeModal()">×</button><div class="label">DEMO PEER VIEW</div><h2 id="modalTitle">Tell their story.</h2><p>Describe a specific way Aryahi helped you. This simulates another person writing an endorsement.</p><form onsubmit="submitReview(event)"><label for="author">Your name</label><input id="author" required maxlength="60" placeholder="e.g. Jamie Lee"><label for="review">What was it like working together?</label><textarea id="review" required minlength="15" maxlength="600" placeholder="What did they help with? What did you learn?"></textarea><div class="modalfooter"><small style="color:#999">Visible in this demo only</small><button class="primary">Add endorsement</button></div></form></section></div>';
+                document.getElementById("author").focus();
+            }
+            function submitReview(e) {
+                e.preventDefault();
+                state.reviews.push({
+                    author: document.getElementById("author").value.trim(),
+                    text: document.getElementById("review").value.trim(),
+                });
+                save();
+                closeModal();
+                render();
+                toast("Peer endorsement added.");
+            }
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") closeModal();
+            });
+            render();
+            if (!state.onboarded) setTimeout(openOnboarding, 700);
+        </script>
+    </body>
+</html>
