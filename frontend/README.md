@@ -1,32 +1,16 @@
-# Bridge dashboard
+# Bridge frontend
 
-An interactive prototype for personalized student project matching and peer mentorship.
+Use the FastAPI server from the repository root. See [the root README](../README.md) for AWS table permissions, setup, and persistence details.
 
-## Run locally
+```bash
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-Extract this ZIP and open index.html in your browser. No installation or API keys are needed.
+Open http://127.0.0.1:8000/?student=1. Do not open `index.html` directly or use a static-only server: the app needs `/api/*` endpoints.
 
-Alternatively, from this folder run:
+- `app.js`: AWS API loading, one-project deck, team rendering, keyboard/mouse/touch actions, and persistence.
+- `team.js`: pure four-slot refresh selection; no network or storage calls.
+- `matching/rank.js`: the team's existing weighted ranker, unchanged.
+- `styles.css`: responsive navy/violet/lime layout, kept-card states, fire overlays, and reduced-motion handling.
 
-    python3 -m http.server 8000
-
-Then open http://localhost:8000.
-
-## Included features
-
-- Three-step onboarding for goals, skills, interests, and availability
-- Personalized project feed with swipe gestures and buttons
-- Join requests and help offers
-- Simulated teammate confirmation of completed help
-- Help-based tiers and leaderboard
-- Peer-written endorsements through a demo peer view
-
-## Implementation
-
-The delivered dashboard uses vanilla HTML, CSS, and JavaScript. Styling is in styles.css, page behavior is in app.js, and project ranking is in matching/rank.js. It does not use React or a Python backend.
-
-Data persists in browser localStorage under bridge-v1. Sample profiles, contributions, and projects are fictional demo content. Peer confirmation is simulated; there is no authentication or cross-user verification. AWS, FastAPI, SQLite, and DynamoDB are not connected. The matching score is a deterministic heuristic, not a probability or an AI model.
-
-Google Fonts are optional and require internet; system fallback fonts work offline.
-
-To restart onboarding and reset demo changes, clear this site's browser storage (the bridge-v1 localStorage key).
+Keep the script order in `index.html`: ranker, selection helper, then app. `matching/demoDeck.js` is retained for old fixtures/debugging but is not loaded in the AWS app.

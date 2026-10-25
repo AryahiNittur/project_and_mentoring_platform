@@ -1,98 +1,37 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-        <title>Bridge — Build together. Give back.</title>
-
-        <link rel="stylesheet" href="styles.css" />
-    </head>
-
-    <body>
-        <aside>
-            <div class="logo">
-                <span class="symbol">∩∩</span>
-                <em style="font-style: normal">
-                    bridge<span class="purple">.</span>
-                </em>
-            </div>
-
-            <div class="sub">YOUR WORKSPACE</div>
-
-            <!-- app.js generates the navigation here. -->
-            <nav id="nav" aria-label="Main navigation"></nav>
-
-            <div class="sidebarfoot">
-                <div class="campus">
-                    ◈ &nbsp; Built for Buckeyes
-                    <b>Big ideas. Better together.</b>
-                    <span style="color: #999">Ohio State University</span>
-                </div>
-
-                <div class="user">
-                    <div class="avatar">B</div>
-                    <div>
-                        <b>Bridge workspace</b>
-                        <small>Learn and build together</small>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <main>
-            <header>
-                <div>
-                    <b>Community workspace</b>
-                    <br />
-                    <small>
-                        Ohio State University &nbsp; / &nbsp;
-                        <span id="crumb">Overview</span>
-                    </small>
-                </div>
-
-                <div class="topright">
-                    <span class="status">
-                        <span class="dot">●</span>
-                        &nbsp; Local demo
-                    </span>
-
-                    <button
-                        class="avatar"
-                        type="button"
-                        title="Edit preferences"
-                        aria-label="Edit preferences"
-                        onclick="openOnboarding()"
-                    >
-                        B
-                    </button>
-                </div>
-            </header>
-
-            <!-- app.js renders the dashboard and project cards here. -->
-            <div id="view">
-                <div class="empty" role="status">
-                    <h3>Loading your workspace…</h3>
-                </div>
-            </div>
-
-            <p class="helpnote">
-                HackOHI/O · Honda Bridge Builder · Sample community data
-            </p>
-        </main>
-
-        <!-- Survey and other dialogs appear here. -->
-        <div id="overlay"></div>
-
-        <!-- Status notifications appear here. -->
-        <div id="toast" aria-live="polite"></div>
-
-        <noscript>
-            Please enable JavaScript to use the Bridge dashboard.
-        </noscript>
-
-        <!-- Load the matching functions before the dashboard. -->
-        <script src="matching/rank.js"></script>
-        <script src="app.js"></script>
-    </body>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Find your project. Build your dream team. Bridge connects Buckeyes across disciplines.">
+    <title>Bridge — Your project. Your people.</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <a class="skip" href="#view">Skip to workspace</a>
+    <header class="header">
+        <a class="brand" href="./" aria-label="Bridge home"><span>b.</span>bridge<span class="branddot">.</span></a>
+        <nav aria-label="Workspace">
+            <button data-page="discover" class="active">Discover projects</button>
+            <button data-page="team">Projects & people</button>
+            <button data-page="workspace">My workspace</button>
+        </nav>
+        <div class="headerend"><span class="campus">● OHIO STATE</span><button id="motion">Pause motion</button></div>
+    </header>
+    <main>
+        <section class="intro" aria-label="Your community">
+            <div><div class="eyebrow">GOOD PEOPLE. REAL PROJECTS. BIG POSSIBILITIES.</div><p>Find your project.<br><em>Build your dream team.</em></p></div>
+            <div class="introart" aria-hidden="true"><span>✳</span><i>IDEAS CONNECT HERE</i></div>
+        </section>
+        <div class="identity"><span id="profile">Loading your student profile…</span><span id="saveStatus" role="status"></span></div>
+        <section id="view" tabindex="-1" aria-label="Community workspace" aria-busy="true"><div class="empty"><h2>Loading your AWS workspace…</h2></div></section>
+        <footer><a class="brand" href="./">bridge.</a><span>Made for Buckeyes. Built for what’s next.</span><small>HackOHI/O · Student project demo</small></footer>
+    </main>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <noscript>Please enable JavaScript to use the Bridge workspace.</noscript>
+    <!-- Keep the team's existing pure ranker before the UI. -->
+    <script src="matching/rank.js"></script>
+    <script src="team.js"></script>
+    <script src="app.js"></script>
+</body>
 </html>
