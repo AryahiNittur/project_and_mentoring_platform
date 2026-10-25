@@ -1,8 +1,25 @@
-if (!globalThis.BRIDGE_PROJECTS || !globalThis.BRIDGE_DEFAULT_STUDENT || !globalThis.BridgeMatch) {
-    throw new Error("Matching scripts failed to load. Serve this folder so matching/rank.js and matching/demoDeck.js resolve.");
+if (!globalThis.BridgeMatch) {
+    throw new Error("The matching script must load before app.js.");
 }
-const projects = globalThis.BRIDGE_PROJECTS;
-const persona = globalThis.BRIDGE_DEFAULT_STUDENT;
+
+const STUDENT_ID = 1;
+const STORAGE_KEY = `bridge-aws-student-${STUDENT_ID}`;
+
+const projects = [];
+
+// Initial placeholders only; replaced with the database profile on startup.
+const persona = {
+    name: "",
+    email: "",
+    languages: [],
+    interests: [],
+    learn: [],
+    year: "",
+    major: "",
+    experience: 1,
+    hours_per_week: 2,
+};
+
 const defaults = {
     onboarded: false,
     name: persona.name,
@@ -29,7 +46,7 @@ const defaults = {
 };
 let state;
 try {
-    state = BridgeMatch.applyStoredProfile(defaults, JSON.parse(localStorage.getItem("bridge-v1") || "{}"));
+    state = BridgeMatch.applyStoredProfile(defaults, JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"));
 } catch {
     state = { ...defaults };
 }
@@ -42,7 +59,7 @@ const esc = (s) =>
         /[&<>"']/g,
         (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
     );
-const save = () => localStorage.setItem("bridge-v1", JSON.stringify(state));
+const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 const tier = () =>
     state.helps >= 25
         ? "Community Champion"
@@ -555,6 +572,100 @@ function submitReview(e) {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
 });
-render();
-if (!state.onboarded) setTimeout(openOnboarding, 700);
-        
+async function fetchJSON(path) {
+    const response = await fetch(path);
+
+    if (!response.ok) {
+        throw new Error(`${path} failed (${response.status})`);
+    }
+
+    return response.json();
+}
+
+function adaptProject(project) {
+    return {
+        ...project,
+
+        // Compatibility with the existing card UI.
+        desc: project.description || "",
+        skills: project.languages || [],
+        topic: (project.interests || []).join(" · "),
+        color: "#eeecf9",
+        need: "",
+        type: "Company project",
+        people: `${project.spots} spots open`,
+    };
+}
+
+async function initializeDashboard() {
+    document.getElementById("view").innerHTML =
+        '<div class="empty"><h3>Loading your student profile and projects…</h3></div>';
+
+    try {
+        const [student, databaseProjects] = await Promise.all([
+            fetchJSON(`/api/students/${STUDENT_ID}`),
+            fetchJSON("/api/projects"),
+        ]);
+
+        if (!Array.isArray(databaseProjects)) {
+            throw new Error("The projects endpoint must return an array.");
+        }
+
+        const required = [
+            "id",
+            "languages",
+            "interests",
+            "learn",
+            "experience",
+            "hours_per_week",
+        ];
+
+        for (const field of required) {
+            if (student[field] === undefined) {
+                throw new Error(`Student is missing ${field}.`);
+            }
+        }
+
+        // Database values replace the sample survey/profile.
+        Object.assign(state, {
+            id: student.id,
+            name: student.name,
+            email: student.email,
+            languages: [...student.languages],
+            interests: [...student.interests],
+            learn: [...student.learn],
+            year: student.year,
+            major: student.major,
+            experience: Number(student.experience),
+            hours_per_week: Number(student.hours_per_week),
+            skills: [...student.languages],
+            topics: [...student.interests],
+            mode: "join",
+            onboarded: true,
+        });
+
+        projects.splice(
+            0,
+            projects.length,
+            ...databaseProjects.map(adaptProject)
+        );
+
+        save();
+
+        // Your existing feed() passes this state and these projects
+        // into BridgeMatch.deckFromState().
+        render();
+
+        console.log("Database student:", student);
+        console.log("Database projects:", projects);
+    } catch (error) {
+        console.error(error);
+
+        document.getElementById("view").innerHTML =
+            '<div class="empty"><h3>Could not load the dashboard</h3><p>' +
+            esc(error.message) +
+            '</p><button class="primary" onclick="initializeDashboard()">Retry</button></div>';
+    }
+}
+
+initializeDashboard();
