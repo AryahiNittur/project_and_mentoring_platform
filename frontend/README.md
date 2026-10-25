@@ -1,49 +1,18 @@
-# Bridge dashboard
+# Bridge frontend
 
-Personalized project matching for the HackOHI/O Honda Bridge Builder demo. The browser ranks projects. FastAPI reads and writes DynamoDB.
-
-## Run locally
-
-From the repository root:
+Use the FastAPI server from the repository root. See [the root README](../README.md) for AWS table permissions, setup, and persistence details.
 
 ```bash
-python -m venv .venv
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Activate it with `.venv\Scripts\activate` on Windows or `source .venv/bin/activate` on macOS and Linux. Then:
+Open http://127.0.0.1:8000/?student=1. Do not open `index.html` directly or use a static-only server: the app needs `/api/*` endpoints.
 
-```bash
-pip install -r requirements.txt
-```
+- `community.js`: Overview, leaderboard, contribution/growth panels, original survey, profile/endorsements, and team connection requests.
+- `scene.js` and `vendor/three.module.js`: the original Three.js constellation, bundled locally with CSS fallback. No Pause motion control; system reduced-motion preferences are respected.
+- `app.js`: AWS API loading, one-project deck, team rendering, keyboard/mouse/touch actions, and persistence.
+- `team.js`: pure four-slot refresh selection; no network or storage calls.
+- `matching/rank.js`: the team's existing weighted ranker, unchanged.
+- `styles.css`: responsive navy/violet/lime layout, kept-card states, fire overlays, and reduced-motion handling.
 
-Copy `.env.example` to `.env`.
-
-Put AWS credentials in `.env`. The app reads that file from the repository root and uses `AWS_DEFAULT_REGION` (default `us-east-2`).
-
-```bash
-python -m uvicorn backend.main:app --reload
-```
-
-Open http://127.0.0.1:8000.
-
-The page is served by FastAPI, which also exposes `/api`. `python -m http.server` has no API, so the dashboard stops on “Could not load the dashboard.”
-
-## What is stored
-
-- `GET /api/projects` and `GET /api/students/{id}` load the deck.
-- Saving preferences sends `PUT /api/students/{id}`. The Students table is the profile. `"8+"` stays the string `"8+"`.
-- Building a deck sends `POST /api/decks`. A like or pass then sends `POST /api/swipes` for that same deck and score.
-- Passed projects, join requests, and help offers for this browser also stay in `localStorage` under `bridge-aws-student-1`.
-
-## Checks
-
-```bash
-npm test
-python -m unittest backend.test_main
-```
-
-`npm test` covers the weighted ranker. `backend.test_main` covers the API against a local stand-in for DynamoDB, including the deck-then-swipe order.
-
-## Layout
-
-Styling is in `frontend/styles.css`. Page behavior is in `frontend/app.js`. Ranking is in `frontend/matching/rank.js`. The API is `backend/main.py`.
+Keep the script order in `index.html`: ranker, selection helper, community pages, then app (with the scene loaded as a module). `matching/demoDeck.js` is retained for old fixtures/debugging but is not loaded in the AWS app.
