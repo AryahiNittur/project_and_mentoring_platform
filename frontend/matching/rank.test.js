@@ -382,12 +382,14 @@ test("the default demo student ranks the five visible projects", () => {
 
 test("the live page calls the weighted ranker and not the offline model", () => {
     const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+    const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
     const source = fs.readFileSync(path.join(__dirname, "rank.js"), "utf8");
     assert.match(html, /matching\/rank\.js/);
     assert.match(html, /matching\/demoDeck\.js/);
-    assert.match(html, /BridgeMatch\.deckFromState/);
-    assert.match(html, /BridgeMatch\.scoreProject/);
-    assert.match(html, /BridgeMatch\.reasonFor/);
-    assert.doesNotMatch(html, /predictLike|fitLogistic|40 \* matches/);
+    assert.match(html, /app\.js/);
+    assert.match(app, /BridgeMatch\.deckFromState/);
+    assert.match(app, /BridgeMatch\.scoreProject/);
+    assert.match(app, /BridgeMatch\.reasonFor/);
+    assert.doesNotMatch(html + app, /predictLike|fitLogistic|40 \* matches/);
     assert.doesNotMatch(source, /fitLogistic|predictLike/);
 });
