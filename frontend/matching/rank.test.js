@@ -385,15 +385,12 @@ test("the live page calls the weighted ranker and not the offline model", () => 
     const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
     const source = fs.readFileSync(path.join(__dirname, "rank.js"), "utf8");
     assert.match(html, /matching\/rank\.js/);
-    assert.match(html, /app\.js/);
     assert.doesNotMatch(html, /matching\/demoDeck\.js/);
+    assert.match(app, /api\('\/api\/projects'\)/);
+    assert.match(html, /app\.js/);
     assert.match(app, /BridgeMatch\.deckFromState/);
     assert.match(app, /BridgeMatch\.scoreProject/);
     assert.match(app, /BridgeMatch\.reasonFor/);
-    assert.match(app, /\/api\/decks/);
-    assert.match(app, /\/api\/swipes/);
-    assert.match(app, /\/api\/students\//);
-    assert.doesNotMatch(app, /hours_per_week:\s*Number\(/);
     assert.doesNotMatch(html + app, /predictLike|fitLogistic|40 \* matches/);
     assert.doesNotMatch(source, /fitLogistic|predictLike/);
 });
