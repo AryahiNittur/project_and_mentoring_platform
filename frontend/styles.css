@@ -322,6 +322,12 @@ h3 {
     top: 15px;
     background: white;
 }
+.projectvideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #111;
+}
 .projectart small {
     position: absolute;
     right: 14px;

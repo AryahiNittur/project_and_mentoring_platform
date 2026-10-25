@@ -50,6 +50,9 @@ try {
 } catch {
     state = { ...defaults };
 }
+normalizeStoredIds();
+let deckRecord = null;
+let swipeInFlight = false;
 let page = "Overview",
     step = 0,
     draft = {},
@@ -59,6 +62,19 @@ const esc = (s) =>
         /[&<>"']/g,
         (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
     );
+function personInitials(name) {
+    const parts = String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!parts.length) return "?";
+    const letters = parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0];
+    return letters.toUpperCase();
+}
+function firstName() {
+    const name = String(state.name || "").trim();
+    return name ? name.split(/\s+/)[0] : "this student";
+}
 const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 const tier = () =>
     state.helps >= 25
@@ -120,19 +136,25 @@ function choiceButtons(key, options) {
         .join("");
 }
 function rankRows(full = false) {
+    const youName = state.name || "You";
     let users = [
-        { name: "Maya Chen", field: "Design · Senior", n: 28, initials: "MC", color: "#f7e6dc" },
+        { name: "Riley Patel", field: "Design · Senior", n: 28, initials: "RP", color: "#f7e6dc" },
         { name: "Jordan Williams", field: "Engineering · Junior", n: 21, initials: "JW", color: "#e2ede7" },
         { name: "Sam Rivera", field: "Business · Senior", n: 17, initials: "SR", color: "#e8e6f5" },
         {
-            name: "Aryahi Nittur",
-            field: "You · Computer Science",
+            name: youName,
+            field: "You · " + (state.major || "Ohio State"),
             n: state.helps,
-            initials: "AN",
+            initials: personInitials(youName),
             color: "#e9e3fc",
             you: true,
         },
-    ].sort((a, b) => b.n - a.n);
+    ]
+        .filter(
+            (person) =>
+                person.you || person.name.trim().toLowerCase() !== youName.trim().toLowerCase()
+        )
+        .sort((a, b) => b.n - a.n);
     return users
         .map(
             (u, i) =>
@@ -204,7 +226,9 @@ function render() {
             (state.mode === "help" ? "selected" : "") +
             '" onclick="setMode(\'help\')">Give back</button></div></div>' +
             card() +
-            '</section><section class="panel below"><div class="panelhead"><h2>Your reputation, in their words</h2><button class="link" onclick="navigate(\'My profile\')">View profile ↗</button></div><div class="quote"><p>“Aryahi breaks down tricky problems without making you feel behind. She helped us get our first working prototype, and made sure we understood why it worked.”</p><div class="quoteby"><div class="avatar" style="width:29px;height:29px;font-size:10px;background:#e2ede7">JL</div><div><b>Jamie Lee</b><small>Teammate · Campus robotics project · Sample endorsement</small></div><span class="badge" style="margin-left:auto">PEER WRITTEN</span></div></div></section></div><div class="side"><section class="panel tier"><div class="label">YOUR GROWTH</div><div class="tiermark" style="margin-top:18px">✧</div><h3>' +
+            '</section><section class="panel below"><div class="panelhead"><h2>Your reputation, in their words</h2><button class="link" onclick="navigate(\'My profile\')">View profile ↗</button></div><div class="quote"><p>“' +
+            esc(firstName()) +
+            ' breaks down tricky problems without making you feel behind. They helped us get our first working prototype, and made sure we understood why it worked.”</p><div class="quoteby"><div class="avatar" style="width:29px;height:29px;font-size:10px;background:#e2ede7">JL</div><div><b>Jamie Lee</b><small>Teammate · Campus robotics project · Sample endorsement</small></div><span class="badge" style="margin-left:auto">PEER WRITTEN</span></div></div></section></div><div class="side"><section class="panel tier"><div class="label">YOUR GROWTH</div><div class="tiermark" style="margin-top:18px">✧</div><h3>' +
             tier() +
             '</h3><p>You’re turning what you know into someone else’s next step.</p><div class="progress"><span style="width:' +
             Math.min(100, (state.helps / 25) * 100) +
@@ -245,8 +269,9 @@ function render() {
             (ids.length
                 ? ids
                       .map((id) => {
-                          let p = projects.find((x) => x.id === id),
+                          let p = projectById(id),
                               done = state.confirmed.includes(id);
+                          if (!p) return "";
                           return (
                               '<div class="listcard"><span class="badge">' +
                               (done
@@ -255,12 +280,13 @@ function render() {
                                     ? "HELP OFFER SENT"
                                     : "JOIN REQUEST SENT") +
                               "</span><h3>" +
-                              p.title +
+                              esc(p.title) +
                               "</h3><p>" +
-                              p.need +
+                              esc(scheduleLine(p) || "Schedule not listed") +
                               " · " +
-                              p.time +
-                              " minutes</p><p>" +
+                              esc((p.spots ?? "?") + " spots left") +
+                              (p.mentor ? " · " + esc(p.mentor) : "") +
+                              "</p><p>" +
                               (done
                                   ? "Sample teammate confirmed your contribution. Your tier and leaderboard have updated."
                                   : "Awaiting a response from the project team. For this prototype, you can simulate the receiving teammate confirming a completed help request.") +
@@ -278,7 +304,9 @@ function render() {
             "</section>";
     } else {
         html =
-            '<div class="pageheading"><div><h1>Your story, told together.</h1><p>A profile built from what others experienced working with you.</p></div><button class="outline" onclick="openOnboarding()">Edit preferences</button></div><div class="layout"><section class="panel"><div style="padding:28px"><div class="avatar" style="width:72px;height:72px;font-size:23px">AN</div><h3>' +
+            '<div class="pageheading"><div><h1>Your story, told together.</h1><p>A profile built from what others experienced working with you.</p></div><button class="outline" onclick="openOnboarding()">Edit preferences</button></div><div class="layout"><section class="panel"><div style="padding:28px"><div class="avatar" style="width:72px;height:72px;font-size:23px">' +
+            esc(personInitials(state.name)) +
+            "</div><h3>" +
             esc(state.name) +
             "</h3><p>" +
             esc(state.major) +
@@ -343,28 +371,30 @@ function card() {
         score(p) +
         '" style="touch-action:pan-y"><div class="projectart" style="background:' +
         p.color +
-        '"><div class="artgrid"></div><div class="artshape"></div><span class="badge">' +
+        '">' +
+        projectArt(p) +
+        '<span class="badge">' +
         (state.mode === "help" ? "A LITTLE HELP NEEDED" : "BUILD SOMETHING MEANINGFUL") +
         "</span><small>" +
-        esc(p.topic.toUpperCase()) +
+        esc((p.topic || p.org || "Project").toUpperCase()) +
         '</small></div><div class="projectmeta"><span class="label">' +
-        p.org +
+        esc(p.org || "") +
         '</span><span class="badge" id="fit-score">' +
         score(p) +
         "% FIT</span></div><h3>" +
         esc(p.title) +
         '</h3><p class="projectdesc">' +
-        esc(state.mode === "help" ? p.need + ". " + p.desc : p.desc) +
+        esc(p.description || p.desc || "") +
         '</p><div class="chips">' +
         tagChips([...(p.languages || []), ...(p.interests || [])]) +
         '<span class="chip">' +
-        esc(state.mode === "help" ? p.type : "Student teammate") +
+        esc(state.mode === "help" ? p.type || "Company project" : "Student teammate") +
         '</span></div><div class="facts"><span>◷ ' +
-        esc((state.mode === "help" ? p.time + " min visit · " : "") + p.hours_per_week + " hrs/week · " + p.weeks + " weeks") +
+        esc(scheduleLine(p)) +
         "</span><span>♧ " +
         esc(p.spots + " spots left") +
         '</span></div><p style="font-size:11px;margin:-5px 0 14px">' +
-        esc(p.mentor) +
+        esc(p.mentor || "") +
         '</p><div class="why" id="match-reason"><b>✧ &nbsp; Why this connection?</b><br>' +
         esc(matchReason(p)) +
         '</div><div class="swipeactions"><button class="round" aria-label="Pass project" onclick="act(\'pass\')">×</button><button class="round" aria-label="Save project" onclick="act(\'save\')">' +
@@ -381,29 +411,69 @@ function setMode(m) {
     save();
     render();
 }
-function act(a) {
+async function act(a) {
     let p = feed()[0];
     if (!p) return;
+    const projectId = Number(p.id);
     if (a === "save") {
-        if (!state.saved.includes(p.id)) {
-            state.saved.push(p.id);
+        if (!state.saved.includes(projectId)) {
+            state.saved.push(projectId);
             toast("Saved. You can still offer help or join this project.");
         } else {
-            state.saved = state.saved.filter((x) => x !== p.id);
+            state.saved = state.saved.filter((x) => x !== projectId);
             toast("Removed from saved projects.");
         }
-    } else if (a === "pass") {
-        state.passed.push(state.mode + p.id);
-    } else {
-        (state.mode === "help" ? state.offers : state.joined).push(p.id);
-        toast(
-            state.mode === "help"
-                ? "Help offer sent! Follow up in My connections."
-                : "Join request sent! See My connections."
-        );
+        save();
+        render();
+        return;
     }
-    save();
-    render();
+    if (swipeInFlight) return;
+    const bucket = a === "pass" ? state.passed : state.mode === "help" ? state.offers : state.joined;
+    if (bucket.includes(projectId)) return;
+    swipeInFlight = true;
+    try {
+        let deck;
+        try {
+            deck = await ensureDeck();
+        } catch (error) {
+            console.error(error);
+            toast("Could not save this deck. Check the database and try again.");
+            return;
+        }
+        const swipeScore = deck.scores[projectId];
+        try {
+            await fetchJSON("/api/swipes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_id: crypto.randomUUID(),
+                    deck_id: deck.id,
+                    student_id: STUDENT_ID,
+                    project_id: projectId,
+                    action: a === "pass" ? "pass" : "like",
+                    score: swipeScore,
+                }),
+            });
+        } catch (error) {
+            console.error(error);
+            toast("Could not record that swipe. Nothing was changed.");
+            return;
+        }
+        if (a === "pass") {
+            state.passed.push(projectId);
+        } else {
+            (state.mode === "help" ? state.offers : state.joined).push(projectId);
+            toast(
+                state.mode === "help"
+                    ? "Help offer sent! Follow up in My connections."
+                    : "Join request sent! See My connections."
+            );
+        }
+        save();
+        render();
+    } finally {
+        swipeInFlight = false;
+    }
 }
 function confirmHelp(id) {
     if (state.confirmed.includes(id)) return;
@@ -518,7 +588,7 @@ function showOnboarding() {
         "</button></div></section></div>";
     document.querySelector(".modal .close").focus();
 }
-function nextStep() {
+async function nextStep() {
     if (step === 1 && !draft.languages.length) {
         toast("Choose at least one language.");
         return;
@@ -528,6 +598,20 @@ function nextStep() {
             toast("Choose at least one interest.");
             return;
         }
+        const previous = {
+            goal: state.goal,
+            major: state.major,
+            year: state.year,
+            experience: state.experience,
+            languages: [...state.languages],
+            interests: [...state.interests],
+            learn: [...(state.learn || [])],
+            hours_per_week: state.hours_per_week,
+            skills: [...(state.skills || [])],
+            topics: [...(state.topics || [])],
+            mode: state.mode,
+            onboarded: state.onboarded,
+        };
         state.goal = draft.goal;
         state.major = draft.major;
         state.year = draft.year;
@@ -535,15 +619,27 @@ function nextStep() {
         state.languages = [...draft.languages];
         state.interests = [...draft.interests];
         state.learn = [...draft.learn];
-        state.hours_per_week = draft.hours_per_week;
+        state.hours_per_week = draft.hours_per_week === "8+" ? "8+" : Number(draft.hours_per_week);
         state.skills = [...draft.languages];
         state.topics = [...draft.interests];
         state.onboarded = true;
         if (draft.goal === "Join a project") state.mode = "join";
         if (draft.goal === "Mentor others") state.mode = "help";
+        try {
+            applyStudent(await saveStudentProfile());
+        } catch (error) {
+            console.error(error);
+            Object.assign(state, previous);
+            toast("Could not save your profile to the database.");
+            return;
+        }
         save();
         closeModal();
         render();
+        ensureDeck().catch((error) => {
+            console.error(error);
+            toast("Profile saved, but the new deck was not stored.");
+        });
         toast("Your personalized feed is ready.");
     } else {
         step++;
@@ -555,7 +651,9 @@ function closeModal() {
 }
 function openReview() {
     document.getElementById("overlay").innerHTML =
-        '<div class="modalback"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" aria-label="Close" onclick="closeModal()">×</button><div class="label">DEMO PEER VIEW</div><h2 id="modalTitle">Tell their story.</h2><p>Describe a specific way Aryahi helped you. This simulates another person writing an endorsement.</p><form onsubmit="submitReview(event)"><label for="author">Your name</label><input id="author" required maxlength="60" placeholder="e.g. Jamie Lee"><label for="review">What was it like working together?</label><textarea id="review" required minlength="15" maxlength="600" placeholder="What did they help with? What did you learn?"></textarea><div class="modalfooter"><small style="color:#999">Visible in this demo only</small><button class="primary">Add endorsement</button></div></form></section></div>';
+        '<div class="modalback"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" aria-label="Close" onclick="closeModal()">×</button><div class="label">DEMO PEER VIEW</div><h2 id="modalTitle">Tell their story.</h2><p>Describe a specific way ' +
+        esc(firstName()) +
+        ' helped you. This simulates another person writing an endorsement.</p><form onsubmit="submitReview(event)"><label for="author">Your name</label><input id="author" required maxlength="60" placeholder="e.g. Jamie Lee"><label for="review">What was it like working together?</label><textarea id="review" required minlength="15" maxlength="600" placeholder="What did they help with? What did you learn?"></textarea><div class="modalfooter"><small style="color:#999">Visible in this demo only</small><button class="primary">Add endorsement</button></div></form></section></div>';
     document.getElementById("author").focus();
 }
 function submitReview(e) {
@@ -572,26 +670,178 @@ function submitReview(e) {
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
 });
-async function fetchJSON(path) {
-    const response = await fetch(path);
-
-    if (!response.ok) {
-        throw new Error(`${path} failed (${response.status})`);
+async function fetchJSON(path, options) {
+    const response = await fetch(path, options);
+    const text = await response.text();
+    let data = null;
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { detail: text };
+        }
     }
+    if (!response.ok) {
+        const detail = data && data.detail ? data.detail : response.statusText;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    return data;
+}
 
-    return response.json();
+function hoursFromDatabase(value) {
+    if (typeof value === "string" && value.trim().replace(/\s+/g, "") === "8+") return "8+";
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value;
+}
+
+function numericId(value) {
+    const text = String(value ?? "")
+        .trim()
+        .replace(/^(help|join)/i, "");
+    return /^\d+$/.test(text) ? Number(text) : value;
+}
+
+function normalizeStoredIds() {
+    for (const key of ["passed", "saved", "offers", "joined", "confirmed"]) {
+        state[key] = [...new Set((state[key] || []).map(numericId))];
+    }
+}
+
+function projectById(id) {
+    const key = String(numericId(id));
+    return projects.find((project) => String(project.id) === key);
+}
+
+function scheduleLine(project) {
+    const parts = [];
+    if (project.hours_per_week != null && project.hours_per_week !== "") {
+        parts.push(project.hours_per_week + " hrs/week");
+    }
+    if (project.weeks != null && project.weeks !== "") parts.push(project.weeks + " weeks");
+    return parts.join(" · ");
+}
+
+function projectArt(project) {
+    if (!project.video) return '<div class="artgrid"></div><div class="artshape"></div>';
+    return '<video class="projectvideo" src="' + esc(project.video) + '" controls playsinline></video>';
+}
+
+function applyStudent(student) {
+    const required = ["languages", "interests", "experience", "hours_per_week"];
+    for (const field of required) {
+        if (student[field] === undefined || student[field] === null) {
+            throw new Error(`Student is missing ${field}.`);
+        }
+    }
+    Object.assign(state, {
+        id: Number(student.id || STUDENT_ID),
+        name: student.name || "",
+        email: student.email || "",
+        languages: [...student.languages],
+        interests: [...student.interests],
+        learn: [...(student.learn || [])],
+        year: student.year || "",
+        major: student.major || "",
+        experience: Number(student.experience),
+        hours_per_week: hoursFromDatabase(student.hours_per_week),
+        skills: [...student.languages],
+        topics: [...student.interests],
+        onboarded: true,
+    });
+}
+
+function profileSignature() {
+    const profile = studentProfile();
+    return JSON.stringify({
+        languages: profile.languages,
+        interests: profile.interests,
+        learn: profile.learn,
+        major: profile.major,
+        experience: profile.experience,
+        hours_per_week: profile.hours_per_week,
+        projects: projects.map((project) => [
+            project.id,
+            project.languages,
+            project.interests,
+            project.learn_outcomes,
+            project.target_experience,
+            project.hours_per_week,
+            project.majors,
+            project.spots,
+        ]),
+    });
+}
+
+function deckMatches() {
+    return projects
+        .filter((project) => Number(project.spots) > 0)
+        .map((project) => {
+            const match = {
+                project_id: Number(project.id),
+                score: score(project),
+            };
+            if (!Number.isInteger(match.project_id) || match.project_id <= 0 || !Number.isInteger(match.score)) {
+                throw new Error("A project score could not be saved.");
+            }
+            return match;
+        });
+}
+
+function ensureDeck() {
+    const signature = profileSignature();
+    if (deckRecord && deckRecord.signature === signature) return deckRecord.ready;
+    const deck_id = crypto.randomUUID();
+    const matches = deckMatches();
+    const scores = Object.fromEntries(matches.map((match) => [match.project_id, match.score]));
+    const ready = fetchJSON("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            deck_id,
+            student_id: STUDENT_ID,
+            matches,
+        }),
+    })
+        .then(() => ({ id: deck_id, scores }))
+        .catch((error) => {
+            if (deckRecord && deckRecord.signature === signature) deckRecord = null;
+            throw error;
+        });
+    deckRecord = { signature, ready };
+    return ready;
+}
+
+function saveStudentProfile() {
+    return fetchJSON(`/api/students/${STUDENT_ID}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            languages: state.languages,
+            interests: state.interests,
+            learn: state.learn || [],
+            year: state.year || "",
+            major: state.major || "",
+            experience: Number(state.experience),
+            hours_per_week: state.hours_per_week === "8+" ? "8+" : Number(state.hours_per_week),
+        }),
+    });
 }
 
 function adaptProject(project) {
+    const interests = project.interests || [];
     return {
         ...project,
-
-        // Compatibility with the existing card UI.
+        id: Number(project.id),
+        description: project.description || "",
         desc: project.description || "",
         skills: project.languages || [],
-        topic: (project.interests || []).join(" · "),
-        color: "#eeecf9",
-        need: "",
+        topic: interests.join(" · "),
+        color: project.color || "#eeecf9",
+        hours_per_week: hoursFromDatabase(project.hours_per_week),
+        weeks: project.weeks,
+        spots: Number(project.spots),
+        mentor: project.mentor || "",
+        video: project.video || "",
         type: "Company project",
         people: `${project.spots} spots open`,
     };
@@ -611,50 +861,17 @@ async function initializeDashboard() {
             throw new Error("The projects endpoint must return an array.");
         }
 
-        const required = [
-            "id",
-            "languages",
-            "interests",
-            "learn",
-            "experience",
-            "hours_per_week",
-        ];
+        applyStudent(student);
+        deckRecord = null;
 
-        for (const field of required) {
-            if (student[field] === undefined) {
-                throw new Error(`Student is missing ${field}.`);
-            }
-        }
-
-        // Database values replace the sample survey/profile.
-        Object.assign(state, {
-            id: student.id,
-            name: student.name,
-            email: student.email,
-            languages: [...student.languages],
-            interests: [...student.interests],
-            learn: [...student.learn],
-            year: student.year,
-            major: student.major,
-            experience: Number(student.experience),
-            hours_per_week: Number(student.hours_per_week),
-            skills: [...student.languages],
-            topics: [...student.interests],
-            mode: "join",
-            onboarded: true,
-        });
-
-        projects.splice(
-            0,
-            projects.length,
-            ...databaseProjects.map(adaptProject)
-        );
+        projects.splice(0, projects.length, ...databaseProjects.map(adaptProject));
 
         save();
-
-        // Your existing feed() passes this state and these projects
-        // into BridgeMatch.deckFromState().
         render();
+        ensureDeck().catch((error) => {
+            console.error(error);
+            toast("Projects loaded, but the deck was not saved to the database.");
+        });
 
         console.log("Database student:", student);
         console.log("Database projects:", projects);

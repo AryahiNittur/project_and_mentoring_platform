@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
@@ -10,7 +11,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
@@ -52,14 +53,27 @@ def database_error(error):
     )
 
 
+def jsonable(value):
+    """Turn DynamoDB Decimals into JSON numbers without changing strings like "8+"."""
+    if isinstance(value, Decimal):
+        return int(value) if value == value.to_integral_value() else float(value)
+    if isinstance(value, list):
+        return [jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {key: jsonable(item) for key, item in value.items()}
+    return value
+
+
 @app.get("/api/projects")
 def get_projects():
     try:
         projects = read_all(table("Projects"))
 
-        return sorted(
-            [project for project in projects if project.get("spots", 0) > 0],
-            key=lambda project: int(project["id"]),
+        return jsonable(
+            sorted(
+                [project for project in projects if project.get("spots", 0) > 0],
+                key=lambda project: int(project["id"]),
+            )
         )
     except (BotoCoreError, ClientError) as error:
         raise database_error(error) from error
@@ -76,8 +90,75 @@ def get_student(student_id: int):
         if student is None:
             raise HTTPException(404, "Student not found.")
 
-        return student
+        student.setdefault("id", student_id)
+        student.setdefault("learn", [])
+        return jsonable(student)
 
+    except (BotoCoreError, ClientError) as error:
+        raise database_error(error) from error
+
+
+class StudentUpdate(BaseModel):
+    languages: list[str] = Field(min_length=1, max_length=20)
+    interests: list[str] = Field(min_length=1, max_length=20)
+    learn: list[str] = Field(default_factory=list, max_length=20)
+    year: str = Field(default="", max_length=40)
+    major: str = Field(default="", max_length=80)
+    experience: int = Field(ge=1, le=5)
+    hours_per_week: Literal[2, 4, 6, 8, "8+"]
+
+    @field_validator("languages", "interests", "learn")
+    @classmethod
+    def clean_tags(cls, values):
+        cleaned = [item.strip() for item in values if str(item).strip()]
+        return cleaned
+
+    @field_validator("year", "major")
+    @classmethod
+    def clean_text(cls, value):
+        return value.strip()
+
+    @field_validator("languages", "interests")
+    @classmethod
+    def require_one(cls, values):
+        if not values:
+            raise ValueError("Choose at least one.")
+        return values
+
+
+@app.put("/api/students/{student_id}")
+def update_student(student_id: int, body: StudentUpdate):
+    """The Students table owns the profile. Survey edits write back here."""
+    try:
+        current = table("Students").get_item(
+            Key={"pk": f"student#{student_id}"},
+            ConsistentRead=True,
+        ).get("Item")
+        if current is None:
+            raise HTTPException(404, "Student not found.")
+
+        values = body.model_dump()
+        table("Students").update_item(
+            Key={"pk": f"student#{student_id}"},
+            UpdateExpression=(
+                "SET languages = :languages, interests = :interests, learn = :learn, "
+                "#year = :year, major = :major, experience = :experience, "
+                "hours_per_week = :hours"
+            ),
+            ExpressionAttributeNames={"#year": "year"},
+            ExpressionAttributeValues={
+                ":languages": values["languages"],
+                ":interests": values["interests"],
+                ":learn": values["learn"],
+                ":year": values["year"],
+                ":major": values["major"],
+                ":experience": values["experience"],
+                ":hours": values["hours_per_week"],
+            },
+        )
+        return get_student(student_id)
+    except HTTPException:
+        raise
     except (BotoCoreError, ClientError) as error:
         raise database_error(error) from error
 
@@ -180,8 +261,9 @@ def save_swipe(body: SwipeInput):
 
         if (
             deck_match is None
-            or deck_match["student_id"] != body.student_id
-            or deck_match["score"] != body.score
+            or int(deck_match["student_id"]) != body.student_id
+            or int(deck_match["project_id"]) != body.project_id
+            or int(deck_match["score"]) != body.score
         ):
             raise HTTPException(
                 409, "Build and save the deck before recording this swipe."
@@ -193,7 +275,7 @@ def save_swipe(body: SwipeInput):
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Both records are saved, or neither is saved.
+        # The resource client accepts plain values and writes both records, or neither.
         database().meta.client.transact_write_items(
             TransactItems=[
                 {
@@ -206,7 +288,7 @@ def save_swipe(body: SwipeInput):
                 {
                     "Put": {
                         "TableName": "Matches",
-                        "Item": item,
+                        "Item": dict(item),
                         "ConditionExpression": "attribute_not_exists(pk)",
                     }
                 },

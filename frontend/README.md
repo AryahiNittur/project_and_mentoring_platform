@@ -1,32 +1,49 @@
 # Bridge dashboard
 
-An interactive prototype for personalized student project matching and peer mentorship.
+Personalized project matching for the HackOHI/O Honda Bridge Builder demo. The browser ranks projects. FastAPI reads and writes DynamoDB.
 
 ## Run locally
 
-Extract this ZIP and open index.html in your browser. No installation or API keys are needed.
+From the repository root:
 
-Alternatively, from this folder run:
+```bash
+python -m venv .venv
+```
 
-    python3 -m http.server 8000
+Activate it with `.venv\Scripts\activate` on Windows or `source .venv/bin/activate` on macOS and Linux. Then:
 
-Then open http://localhost:8000.
+```bash
+pip install -r requirements.txt
+```
 
-## Included features
+Copy `.env.example` to `.env`.
 
-- Three-step onboarding for goals, skills, interests, and availability
-- Personalized project feed with swipe gestures and buttons
-- Join requests and help offers
-- Simulated teammate confirmation of completed help
-- Help-based tiers and leaderboard
-- Peer-written endorsements through a demo peer view
+Put AWS credentials in `.env`. The app reads that file from the repository root and uses `AWS_DEFAULT_REGION` (default `us-east-2`).
 
-## Implementation
+```bash
+python -m uvicorn backend.main:app --reload
+```
 
-The delivered dashboard uses vanilla HTML, CSS, and JavaScript. Styling is in styles.css, page behavior is in app.js, and project ranking is in matching/rank.js. It does not use React or a Python backend.
+Open http://127.0.0.1:8000.
 
-Data persists in browser localStorage under bridge-v1. Sample profiles, contributions, and projects are fictional demo content. Peer confirmation is simulated; there is no authentication or cross-user verification. AWS, FastAPI, SQLite, and DynamoDB are not connected. The matching score is a deterministic heuristic, not a probability or an AI model.
+The page is served by FastAPI, which also exposes `/api`. `python -m http.server` has no API, so the dashboard stops on “Could not load the dashboard.”
 
-Google Fonts are optional and require internet; system fallback fonts work offline.
+## What is stored
 
-To restart onboarding and reset demo changes, clear this site's browser storage (the bridge-v1 localStorage key).
+- `GET /api/projects` and `GET /api/students/{id}` load the deck.
+- Saving preferences sends `PUT /api/students/{id}`. The Students table is the profile. `"8+"` stays the string `"8+"`.
+- Building a deck sends `POST /api/decks`. A like or pass then sends `POST /api/swipes` for that same deck and score.
+- Passed projects, join requests, and help offers for this browser also stay in `localStorage` under `bridge-aws-student-1`.
+
+## Checks
+
+```bash
+npm test
+python -m unittest backend.test_main
+```
+
+`npm test` covers the weighted ranker. `backend.test_main` covers the API against a local stand-in for DynamoDB, including the deck-then-swipe order.
+
+## Layout
+
+Styling is in `frontend/styles.css`. Page behavior is in `frontend/app.js`. Ranking is in `frontend/matching/rank.js`. The API is `backend/main.py`.
