@@ -789,88 +789,27 @@
         </main>
         <div id="overlay"></div>
         <div id="toast"></div>
+        <script src="matching/rank.js"></script>
+        <script src="matching/demoDeck.js"></script>
         <script>
-            const projects = [
-                {
-                    id: 1,
-                    title: "A fresher future for campus food",
-                    org: "Sustainability × Computer Science",
-                    desc: "Help an interdisciplinary team build a food-waste monitor for campus kitchens.",
-                    skills: ["Python", "Computer Vision"],
-                    topic: "Sustainability",
-                    time: 20,
-                    type: "Code review",
-                    weeks: 4,
-                    people: "3 students · 2 majors",
-                    color: "#eeecf9",
-                    need: "Review our food-detection pipeline",
-                    mentor: "Industry mentor: Jordan · Food systems",
-                },
-                {
-                    id: 2,
-                    title: "Make campus easier to navigate",
-                    org: "Design × Engineering",
-                    desc: "Build an accessible campus map with designers, engineers, and students with lived experience.",
-                    skills: ["Design", "JavaScript"],
-                    topic: "Accessibility",
-                    time: 30,
-                    type: "Feedback",
-                    weeks: 6,
-                    people: "4 students · 3 majors",
-                    color: "#e8f2f0",
-                    need: "Give feedback on our navigation prototype",
-                    mentor: "Industry mentor: Sam · Product design",
-                },
-                {
-                    id: 3,
-                    title: "Small robots. Big possibilities.",
-                    org: "Engineering × Education",
-                    desc: "Create a hands-on robotics kit that makes engineering approachable for local classrooms.",
-                    skills: ["Robotics", "Python"],
-                    topic: "Education",
-                    time: 20,
-                    type: "Mentoring",
-                    weeks: 5,
-                    people: "3 students · 2 majors",
-                    color: "#f9efe1",
-                    need: "Help troubleshoot robot movement",
-                    mentor: "Industry mentor: Alex · Automation",
-                },
-                {
-                    id: 4,
-                    title: "Turn campus data into stories",
-                    org: "Business × Data Science",
-                    desc: "Make student spending data useful through clear visualizations and thoughtful research.",
-                    skills: ["Data Analysis", "Design"],
-                    topic: "Community",
-                    time: 15,
-                    type: "Feedback",
-                    weeks: 4,
-                    people: "4 students · 3 majors",
-                    color: "#ecf0fa",
-                    need: "Review our dashboard and research questions",
-                    mentor: "Industry mentor: Taylor · Analytics",
-                },
-                {
-                    id: 5,
-                    title: "A better way to find your people",
-                    org: "Psychology × Computer Science",
-                    desc: "Help first-year students discover small campus communities around shared interests.",
-                    skills: ["JavaScript", "Design"],
-                    topic: "Community",
-                    time: 20,
-                    type: "Code review",
-                    weeks: 6,
-                    people: "3 students · 3 majors",
-                    color: "#f5eaf1",
-                    need: "Review our community discovery interface",
-                    mentor: "Industry mentor: Casey · Software",
-                },
-            ];
+            if (!globalThis.BRIDGE_PROJECTS || !globalThis.BRIDGE_DEFAULT_STUDENT || !globalThis.BridgeMatch) {
+                throw new Error("Matching scripts failed to load. Serve this folder so matching/rank.js and matching/demoDeck.js resolve.");
+            }
+            const projects = globalThis.BRIDGE_PROJECTS;
+            const persona = globalThis.BRIDGE_DEFAULT_STUDENT;
             const defaults = {
                 onboarded: false,
-                skills: ["Python", "Robotics"],
-                topics: ["Sustainability", "Education"],
+                name: persona.name,
+                email: persona.email,
+                languages: [...persona.languages],
+                interests: [...persona.interests],
+                learn: [...persona.learn],
+                year: persona.year,
+                major: persona.major,
+                experience: persona.experience,
+                hours_per_week: persona.hours_per_week,
+                skills: [...persona.languages],
+                topics: [...persona.interests],
                 minutes: 30,
                 mode: "help",
                 goal: "Both",
@@ -884,7 +823,7 @@
             };
             let state;
             try {
-                state = { ...defaults, ...JSON.parse(localStorage.getItem("bridge-v1") || "{}") };
+                state = BridgeMatch.applyStoredProfile(defaults, JSON.parse(localStorage.getItem("bridge-v1") || "{}"));
             } catch {
                 state = { ...defaults };
             }
@@ -915,24 +854,47 @@
                 page = p;
                 render();
             }
+            const MAJORS = [
+                "Computer Science",
+                "Data Science",
+                "Design",
+                "Biology",
+                "Business",
+                "Electrical Engineering",
+                "Mechanical Engineering",
+                "Psychology",
+            ];
+            const YEARS = ["First-year", "Sophomore", "Junior", "Senior"];
+            function studentProfile() {
+                return BridgeMatch.profileFromState(state);
+            }
             function score(p) {
-                let matches = p.skills.filter((x) => state.skills.includes(x)).length;
-                return Math.round(
-                    (40 * matches) / p.skills.length +
-                        25 * Math.min(1, state.minutes / p.time) +
-                        20 * (state.topics.includes(p.topic) ? 1 : 0) +
-                        15
-                );
+                return BridgeMatch.scoreProject(studentProfile(), p);
+            }
+            function matchReason(p) {
+                return BridgeMatch.reasonFor(studentProfile(), p);
             }
             function feed() {
-                return projects
-                    .filter(
-                        (p) =>
-                            !state.passed.includes(state.mode + p.id) &&
-                            !(state.mode === "help" ? state.offers : state.joined).includes(p.id) &&
-                            (state.mode !== "help" || p.time <= state.minutes)
+                return BridgeMatch.deckFromState(state, projects).map((row) => row.project);
+            }
+            function tagChips(list) {
+                return (list || []).map((item) => '<span class="chip">' + esc(item) + "</span>").join("");
+            }
+            function choiceButtons(key, options) {
+                return options
+                    .map(
+                        (option) =>
+                            '<button type="button" class="choice ' +
+                            (draft[key].some((item) => BridgeMatch.norm(item) === BridgeMatch.norm(option)) ? "on" : "") +
+                            "\" onclick=\"toggleChoice('" +
+                            key +
+                            "','" +
+                            option +
+                            "')\">" +
+                            esc(option) +
+                            "</button>"
                     )
-                    .sort((a, b) => score(b) - score(a));
+                    .join("");
             }
             function rankRows(full = false) {
                 let users = [
@@ -1093,7 +1055,15 @@
                         "</section>";
                 } else {
                     html =
-                        '<div class="pageheading"><div><h1>Your story, told together.</h1><p>A profile built from what others experienced working with you.</p></div><button class="outline" onclick="openOnboarding()">Edit preferences</button></div><div class="layout"><section class="panel"><div style="padding:28px"><div class="avatar" style="width:72px;height:72px;font-size:23px">AN</div><h3>Aryahi Nittur</h3><p>Computer Science · Ohio State University</p><span class="badge">' +
+                        '<div class="pageheading"><div><h1>Your story, told together.</h1><p>A profile built from what others experienced working with you.</p></div><button class="outline" onclick="openOnboarding()">Edit preferences</button></div><div class="layout"><section class="panel"><div style="padding:28px"><div class="avatar" style="width:72px;height:72px;font-size:23px">AN</div><h3>' +
+                        esc(state.name) +
+                        "</h3><p>" +
+                        esc(state.major) +
+                        " · " +
+                        esc(state.year) +
+                        " · Ohio State University</p><p>" +
+                        esc(state.email) +
+                        '</p><span class="badge">' +
                         tier().toUpperCase() +
                         '</span> <span class="chip">' +
                         state.helps +
@@ -1108,13 +1078,17 @@
                                     " · Demo peer endorsement</small></div>"
                             )
                             .join("") +
-                        '<div style="margin-top:25px"><button class="outline" onclick="openReview()">Demo: write as a peer</button></div></div></section><section class="panel tier"><h2>How you like to contribute</h2><p>Skills you can share</p><div class="chips">' +
-                        state.skills.map((s) => '<span class="chip">' + esc(s) + "</span>").join("") +
-                        '</div><p>Topics you care about</p><div class="chips">' +
-                        state.topics.map((s) => '<span class="chip">' + esc(s) + "</span>").join("") +
-                        "</div><p>Up to " +
-                        state.minutes +
-                        " minutes per help session</p><p>Goal: " +
+                        '<div style="margin-top:25px"><button class="outline" onclick="openReview()">Demo: write as a peer</button></div></div></section><section class="panel tier"><h2>How you like to contribute</h2><p>Experience ' +
+                        esc(state.experience) +
+                        " · " +
+                        esc(state.hours_per_week) +
+                        ' hours per week</p><p>Languages</p><div class="chips">' +
+                        tagChips(state.languages) +
+                        '</div><p>Interests</p><div class="chips">' +
+                        tagChips(state.interests) +
+                        '</div><p>Wants to learn</p><div class="chips">' +
+                        (state.learn && state.learn.length ? tagChips(state.learn) : '<span class="chip">Not specified</span>') +
+                        "</div><p>Goal: " +
                         esc(state.goal) +
                         '</p><div class="why">Your preferences are self-selected. The profile descriptions above are written by peers.</div></section></div>';
                 }
@@ -1139,9 +1113,12 @@
                     p = list[0];
                 if (!p)
                     return '<div class="empty"><h3>You’re all caught up.</h3><p>Adjust your preferences or revisit the sample projects.</p><button class="outline" onclick="state.passed=[];save();render()">Revisit passed projects</button> <button class="link" onclick="openOnboarding()">Edit preferences</button></div>';
-                let matched = p.skills.filter((x) => state.skills.includes(x));
                 return (
-                    '<div class="feedbody" id="projectcard" style="touch-action:pan-y"><div class="projectart" style="background:' +
+                    '<div class="feedbody" id="projectcard" data-project-id="' +
+                    p.id +
+                    '" data-score="' +
+                    score(p) +
+                    '" style="touch-action:pan-y"><div class="projectart" style="background:' +
                     p.color +
                     '"><div class="artgrid"></div><div class="artshape"></div><span class="badge">' +
                     (state.mode === "help" ? "A LITTLE HELP NEEDED" : "BUILD SOMETHING MEANINGFUL") +
@@ -1149,30 +1126,24 @@
                     esc(p.topic.toUpperCase()) +
                     '</small></div><div class="projectmeta"><span class="label">' +
                     p.org +
-                    '</span><span class="badge">' +
+                    '</span><span class="badge" id="fit-score">' +
                     score(p) +
                     "% FIT</span></div><h3>" +
-                    p.title +
+                    esc(p.title) +
                     '</h3><p class="projectdesc">' +
-                    (state.mode === "help" ? p.need + ". " + p.desc : p.desc) +
+                    esc(state.mode === "help" ? p.need + ". " + p.desc : p.desc) +
                     '</p><div class="chips">' +
-                    p.skills.map((s) => '<span class="chip">' + s + "</span>").join("") +
+                    tagChips([...(p.languages || []), ...(p.interests || [])]) +
                     '<span class="chip">' +
-                    (state.mode === "help" ? p.type : "Student teammate") +
+                    esc(state.mode === "help" ? p.type : "Student teammate") +
                     '</span></div><div class="facts"><span>◷ ' +
-                    (state.mode === "help" ? p.time + " min of your time" : p.weeks + " week project") +
+                    esc((state.mode === "help" ? p.time + " min visit · " : "") + p.hours_per_week + " hrs/week · " + p.weeks + " weeks") +
                     "</span><span>♧ " +
-                    p.people +
+                    esc(p.spots + " spots left") +
                     '</span></div><p style="font-size:11px;margin:-5px 0 14px">' +
-                    p.mentor +
-                    '</p><div class="why"><b>✧ &nbsp; Why this connection?</b><br>' +
-                    (matched.length
-                        ? "Your " + matched.join(" and ") + " skills match this team’s needs."
-                        : "Explore a team with a different skill set.") +
-                    " " +
-                    (state.topics.includes(p.topic)
-                        ? "You both care about " + p.topic.toLowerCase() + "."
-                        : "A chance to explore " + p.topic.toLowerCase() + ".") +
+                    esc(p.mentor) +
+                    '</p><div class="why" id="match-reason"><b>✧ &nbsp; Why this connection?</b><br>' +
+                    esc(matchReason(p)) +
                     '</div><div class="swipeactions"><button class="round" aria-label="Pass project" onclick="act(\'pass\')">×</button><button class="round" aria-label="Save project" onclick="act(\'save\')">' +
                     (state.saved.includes(p.id) ? "★" : "☆") +
                     '</button><button class="matchbtn" onclick="act(\'offer\')">' +
@@ -1220,25 +1191,48 @@
                 toast("Teammate confirmation simulated. +1 confirmed help!");
             }
             function openOnboarding() {
+                const profile = studentProfile();
                 draft = {
-                    skills: [...state.skills],
-                    topics: [...state.topics],
-                    minutes: state.minutes,
                     goal: state.goal,
+                    major: state.major || profile.major,
+                    year: state.year || profile.year,
+                    experience: Number(state.experience == null ? profile.experience : state.experience) || 3,
+                    languages: [...profile.languages],
+                    interests: [...profile.interests],
+                    learn: [...(state.learn || profile.learn || [])],
+                    hours_per_week: state.hours_per_week == null ? profile.hours_per_week : state.hours_per_week,
                 };
                 step = 0;
                 showOnboarding();
             }
             function toggleChoice(key, val) {
-                draft[key] = draft[key].includes(val) ? draft[key].filter((x) => x !== val) : [...draft[key], val];
+                const selected = draft[key].some((item) => BridgeMatch.norm(item) === BridgeMatch.norm(val));
+                draft[key] = selected
+                    ? draft[key].filter((item) => BridgeMatch.norm(item) !== BridgeMatch.norm(val))
+                    : [...draft[key], val];
                 showOnboarding();
+            }
+            function optionList(options, current) {
+                const values = current && !options.map(String).includes(String(current)) ? [current, ...options] : options;
+                return values
+                    .map(
+                        (option) =>
+                            "<option " +
+                            (String(current) === String(option) ? "selected" : "") +
+                            ' value="' +
+                            esc(option) +
+                            '">' +
+                            esc(option) +
+                            "</option>"
+                    )
+                    .join("");
             }
             function showOnboarding() {
                 let title = ["What brings you to Bridge?", "What can you share?", "Make it fit your life."][step],
                     desc = [
-                        "Find your people through projects and small acts of help.",
-                        "Choose skills you can help someone practice. Every major belongs here.",
-                        "We’ll use these preferences to personalize your project feed.",
+                        "Tell us your year, major, and how much you have built so far.",
+                        "Languages are matched against what the project is written in.",
+                        "Interests, what you want to learn, and weekly hours set the deck order.",
                     ][step];
                 let content =
                     step === 0
@@ -1246,7 +1240,7 @@
                           ["Join a project", "Mentor others", "Both"]
                               .map(
                                   (x) =>
-                                      '<button class="choice ' +
+                                      '<button type="button" class="choice ' +
                                       (draft.goal === x ? "on" : "") +
                                       '" onclick="draft.goal=\'' +
                                       x +
@@ -1254,56 +1248,32 @@
                                       x +
                                       "</button>"
                               )
-                              .join("")
+                              .join("") +
+                          '<label for="major">Major</label><select id="major" onchange="draft.major=this.value">' +
+                          optionList(MAJORS, draft.major) +
+                          '</select><label for="year">Year</label><select id="year" onchange="draft.year=this.value">' +
+                          optionList(YEARS, draft.year) +
+                          "</select><label>Experience</label>" +
+                          BridgeMatch.EXPERIENCE_LEVELS.map(
+                              (level) =>
+                                  '<button type="button" class="choice ' +
+                                  (Number(draft.experience) === level.level ? "on" : "") +
+                                  '" onclick="draft.experience=' +
+                                  level.level +
+                                  ';showOnboarding()">' +
+                                  level.level +
+                                  " · " +
+                                  esc(level.label) +
+                                  "</button>"
+                          ).join("")
                         : step === 1
-                          ? "<label>Skills you can share · select at least one</label>" +
-                            [
-                                "Python",
-                                "JavaScript",
-                                "Robotics",
-                                "Computer Vision",
-                                "Design",
-                                "Data Analysis",
-                                "Research",
-                                "Business",
-                            ]
-                                .map(
-                                    (x) =>
-                                        '<button class="choice ' +
-                                        (draft.skills.includes(x) ? "on" : "") +
-                                        "\" onclick=\"toggleChoice('skills','" +
-                                        x +
-                                        "')\">" +
-                                        x +
-                                        "</button>"
-                                )
-                                .join("")
-                          : "<label>Topics you care about · select at least one</label>" +
-                            ["Sustainability", "Accessibility", "Education", "Community"]
-                                .map(
-                                    (x) =>
-                                        '<button class="choice ' +
-                                        (draft.topics.includes(x) ? "on" : "") +
-                                        "\" onclick=\"toggleChoice('topics','" +
-                                        x +
-                                        "')\">" +
-                                        x +
-                                        "</button>"
-                                )
-                                .join("") +
-                            '<label for="time">Time available for a help session</label><select id="time" onchange="draft.minutes=Number(this.value)">' +
-                            [15, 20, 30, 60]
-                                .map(
-                                    (n) =>
-                                        "<option " +
-                                        (draft.minutes === n ? "selected" : "") +
-                                        ' value="' +
-                                        n +
-                                        '">' +
-                                        n +
-                                        " minutes</option>"
-                                )
-                                .join("") +
+                          ? "<label>Languages · select at least one</label>" + choiceButtons("languages", BridgeMatch.LANGUAGES)
+                          : "<label>Interests · select at least one</label>" +
+                            choiceButtons("interests", BridgeMatch.INTERESTS) +
+                            "<label>What you want to learn</label>" +
+                            choiceButtons("learn", BridgeMatch.INTERESTS) +
+                            '<label for="hours">Hours per week</label><select id="hours" onchange="draft.hours_per_week=this.value===\'8+\'?\'8+\':Number(this.value)">' +
+                            optionList(BridgeMatch.HOUR_OPTIONS, draft.hours_per_week) +
                             "</select>";
                 document.getElementById("overlay").innerHTML =
                     '<div class="modalback"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" aria-label="Close onboarding" onclick="closeModal()">×</button><div class="label purple">GET CONNECTED · STEP ' +
@@ -1326,16 +1296,26 @@
                 document.querySelector(".modal .close").focus();
             }
             function nextStep() {
-                if (step === 1 && !draft.skills.length) {
-                    toast("Choose at least one skill.");
+                if (step === 1 && !draft.languages.length) {
+                    toast("Choose at least one language.");
                     return;
                 }
                 if (step === 2) {
-                    if (!draft.topics.length) {
-                        toast("Choose at least one topic.");
+                    if (!draft.interests.length) {
+                        toast("Choose at least one interest.");
                         return;
                     }
-                    Object.assign(state, draft, { onboarded: true });
+                    state.goal = draft.goal;
+                    state.major = draft.major;
+                    state.year = draft.year;
+                    state.experience = Number(draft.experience);
+                    state.languages = [...draft.languages];
+                    state.interests = [...draft.interests];
+                    state.learn = [...draft.learn];
+                    state.hours_per_week = draft.hours_per_week;
+                    state.skills = [...draft.languages];
+                    state.topics = [...draft.interests];
+                    state.onboarded = true;
                     if (draft.goal === "Join a project") state.mode = "join";
                     if (draft.goal === "Mentor others") state.mode = "help";
                     save();
