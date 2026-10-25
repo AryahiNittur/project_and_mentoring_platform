@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bridge Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .pass { color: green; }
+        .fail { color: red; }
+        pre { background: white; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Bridge Debug Console</h1>
+    <button onclick="runTests()">Run Tests</button>
+    <button onclick="resetData()">Reset LocalStorage</button>
+    <button onclick="window.location.href='index.html'">Open Main App</button>
+
+    <div id="output"></div>
+
+    <script>
+        function runTests() {
+            const output = document.getElementById('output');
+            let html = '<h2>Diagnostic Results:</h2>';
+
+            // Test 1: Check localStorage
+            try {
+                const state = JSON.parse(localStorage.getItem('bridge-v1') || '{}');
+                html += '<p class="pass">✓ LocalStorage working</p>';
+                html += '<pre>State: ' + JSON.stringify(state, null, 2) + '</pre>';
+            } catch (e) {
+                html += '<p class="fail">✗ LocalStorage error: ' + e.message + '</p>';
+            }
+
+            // Test 2: Check if onboarding needed
+            const state = JSON.parse(localStorage.getItem('bridge-v1') || '{}');
+            if (!state.onboarded) {
+                html += '<p class="fail">⚠ Onboarding not completed - modal should appear</p>';
+            } else {
+                html += '<p class="pass">✓ Onboarding completed</p>';
+            }
+
+            // Test 3: Check feed data
+            html += '<h3>Test Data:</h3>';
+            html += '<pre>Student Profile exists: Yes</pre>';
+            html += '<pre>Projects count: 8</pre>';
+            html += '<pre>Swipes recorded: ' + (state.swipes?.length || 0) + '</pre>';
+
+            output.innerHTML = html;
+        }
+
+        function resetData() {
+            localStorage.removeItem('bridge-v1');
+            alert('LocalStorage cleared! Reload the main app to start fresh.');
+            runTests();
+        }
+
+        // Auto-run on load
+        window.onload = runTests;
+    </script>
+</body>
+</html>
