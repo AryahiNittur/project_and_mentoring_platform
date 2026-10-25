@@ -233,6 +233,28 @@ def save_swipe(body: SwipeInput):
         raise unavailable(error) from error
 
 
+@app.post('/api/students/{student_id}/demo-reset')
+def reset_demo(student_id: int):
+    """Clear one student's project choices so the intro survey and ranked deck can run again."""
+    try:
+        get_student(student_id)
+        table('Students').update_item(
+            Key={'pk': f'student#{student_id}'},
+            UpdateExpression='SET survey_completed = :open REMOVE dream_team_draft',
+            ExpressionAttributeValues={':open': False},
+        )
+        cleared = 0
+        for row in scan_all('Swipes'):
+            if row.get('student_id') == student_id:
+                table('Swipes').delete_item(Key={'pk': row['pk']})
+                cleared += 1
+        return {'reset': True, 'swipes_cleared': cleared}
+    except HTTPException:
+        raise
+    except (BotoCoreError, ClientError) as error:
+        raise unavailable(error) from error
+
+
 @app.get('/api/students/{student_id}/history')
 def get_history(student_id: int):
     try:

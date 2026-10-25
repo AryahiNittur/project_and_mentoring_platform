@@ -9,8 +9,9 @@ const communitySource = fs.readFileSync(require('node:path').join(__dirname, 'co
 const source = fs.readFileSync(require('node:path').join(__dirname, 'app.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-async function start({failSwipe = false, failLoad = false, remoteDraft, surveyCompleted = true} = {}) {
+async function start({failSwipe = false, failLoad = false, remoteDraft, surveyCompleted = true, passed = []} = {}) {
     const calls = [], listeners = {}, elements = new Map(), cache = new Map();
+    let completed = surveyCompleted, draft = remoteDraft || null, passedIds = [...passed];
     const element = selector => {
         if (!elements.has(selector)) elements.set(selector, {innerHTML: '', textContent: '',
             value: '', classList: {toggle() {}}, setAttribute() {}, focus() {}, dataset: {},
@@ -25,7 +26,7 @@ async function start({failSwipe = false, failLoad = false, remoteDraft, surveyCo
         learn_outcomes: ['Robotics'], target_experience: 3, hours_per_week: 6, weeks: 4, spots: 4}));
     const context = {BridgeMatch, BridgeTeam, console: {error() {}}, URL, URLSearchParams,
         location: {search: '?student=1'}, crypto: webcrypto, matchMedia: () => ({matches: true}),
-        localStorage: {getItem: k => cache.get(k) || null, setItem: (k,v) => cache.set(k,v)},
+        localStorage: {getItem: k => cache.get(k) || null, setItem: (k,v) => cache.set(k,v), removeItem: k => cache.delete(k)},
         confirm: () => true, setTimeout: fn => { queueMicrotask(fn); return 1; }, clearTimeout() {},
         document: {querySelector: element, querySelectorAll: () => [],
             body: {style: {}, classList: {toggle() {}}}, addEventListener: (event, fn) => listeners[event] = fn},
@@ -36,11 +37,14 @@ async function start({failSwipe = false, failLoad = false, remoteDraft, surveyCo
             if (failLoad && path === '/api/projects') return {ok: false, status: 503, json: async () => ({detail: 'AWS unavailable'})};
             if (path === '/api/swipes' && failSwipe) return {ok: false, status: 503, json: async () => ({detail: 'AWS unavailable'})};
             let value = {saved: true};
-            if (path === '/api/students/1') value = {...people[0], ...(remoteDraft ? {dream_team_draft: remoteDraft} : {})};
+            if (path.endsWith('/demo-reset') && options.method === 'POST') {
+                completed = false; draft = null; passedIds = []; value = {reset: true, swipes_cleared: 1};
+            }
+            if (path === '/api/students/1') value = {...people[0], survey_completed: completed, ...(draft ? {dream_team_draft: draft} : {})};
             if (path === '/api/students') value = people;
             if (path === '/api/projects') value = projects;
             if (path === '/api/community') value = people.map(p => ({...p, helps:0}));
-            if (path.endsWith('/history')) value = {passed_ids: [], liked_ids: []};
+            if (path.endsWith('/history')) value = {passed_ids: [...passedIds], liked_ids: []};
             return {ok: true, json: async () => value};
         }};
     vm.createContext(context); vm.runInContext(communitySource, context); vm.runInContext(source, context); await tick();
@@ -155,6 +159,29 @@ test('four kept teammates lead to review and send, without automatically sending
     const request = app.calls.find(c => c.path.endsWith('/connection-requests'));
     assert.deepEqual(request.body.member_ids, ids);
     assert.equal(app.run('page'), 'connections');
+});
+
+test('demo reset clears passed projects and opens the filled-in survey', async () => {
+    const app = await start({
+        surveyCompleted: true,
+        passed: [1],
+        remoteDraft: {project_id: 1, slots: [2, 3, 4, 5], kept: [2], round: 1, seen: [2, 3, 4, 5]},
+    });
+    assert.equal(app.run('page'), 'team');
+    assert.equal(app.run('deck.length'), 1);
+    await app.context.resetDemo();
+    assert.equal(app.calls.some(c => c.path === '/api/students/1/demo-reset' && c.method === 'POST'), true);
+    assert.match(app.element('#overlay').innerHTML, /What brings you to Bridge/);
+    assert.match(app.element('#overlay').innerHTML, /Your answers are filled in/);
+    assert.equal(app.run('history.passed_ids.length'), 0);
+    assert.equal(app.run('deck.length'), 2);
+    assert.equal(app.run('team.project'), null);
+    await app.context.nextSurveyStep();
+    await app.context.nextSurveyStep();
+    app.run("surveyDraft.goal = 'Mentor others'");
+    await app.context.nextSurveyStep();
+    assert.equal(app.run('page'), 'discover');
+    assert.match(app.element('#view').innerHTML, /Database Project/);
 });
 
 test('no infrastructure names or pause control appear in product buttons', () => {

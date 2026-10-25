@@ -140,6 +140,39 @@ class BridgeApiTests(unittest.TestCase):
         self.assertEqual(len(student['endorsements']), 1)
         self.assertTrue(next(iter(student['endorsements'].values()))['demo'])
 
+    def test_demo_reset_reopens_the_survey_and_clears_only_that_students_choices(self):
+        self.client.put('/api/students/1', json={
+            'languages': ['Python'], 'interests': ['Robotics'], 'learn': ['Robotics'],
+            'year': 'Junior', 'major': 'Engineering', 'experience': 3, 'hours_per_week': 6,
+        })
+        deck_id = self.deck()
+        self.assertEqual(self.client.post('/api/swipes', json={
+            'deck_id': deck_id, 'event_id': str(uuid4()), 'student_id': 1,
+            'project_id': 1, 'action': 'pass', 'score': 90,
+        }).status_code, 200)
+        self.assertEqual(self.client.put('/api/students/1/team', json={
+            'project_id': 1, 'slots': [2, 3, 4, 5], 'kept': [2], 'round': 1, 'seen': [2, 3, 4, 5],
+        }).status_code, 200)
+        other_deck = str(uuid4())
+        self.assertEqual(self.client.post('/api/decks', json={
+            'deck_id': other_deck, 'student_id': 2, 'matches': [{'project_id': 1, 'score': 90}],
+        }).status_code, 200)
+        self.assertEqual(self.client.post('/api/swipes', json={
+            'deck_id': other_deck, 'event_id': str(uuid4()), 'student_id': 2,
+            'project_id': 1, 'action': 'like', 'score': 90,
+        }).status_code, 200)
+        reset = self.client.post('/api/students/1/demo-reset')
+        self.assertEqual(reset.status_code, 200, reset.text)
+        self.assertEqual(reset.json()['swipes_cleared'], 1)
+        student = self.client.get('/api/students/1').json()
+        self.assertIs(student['survey_completed'], False)
+        self.assertNotIn('dream_team_draft', student)
+        self.assertEqual(student['languages'], ['Python'])
+        self.assertEqual(student['name'], 'Student 1')
+        self.assertEqual(self.client.get('/api/students/1/history').json(), {'passed_ids': [], 'liked_ids': []})
+        self.assertEqual(self.client.get('/api/students/2/history').json()['liked_ids'], [1])
+        self.assertEqual(self.client.post('/api/students/999/demo-reset').status_code, 404)
+
     def test_frontend_is_served_after_api_routes(self):
         self.assertEqual(self.client.get('/').status_code, 200)
         self.assertIn('matching/rank.js', self.client.get('/').text)

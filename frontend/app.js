@@ -8,7 +8,7 @@ let history = {passed_ids: [], liked_ids: []};
 let team = {project: null, slots: [], kept: [], round: 0, seen: []};
 let page = 'overview', busy = false, dirty = false, toastTimer;
 let motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-let pendingSwipe = null, scores = new Map(), savedIds = [];
+let pendingSwipe = null, scores = new Map(), savedIds = [], demoRun = false;
 
 async function api(path, method = 'GET', body) {
     const response = await fetch(path, {method, headers: {'Content-Type': 'application/json'},
@@ -66,6 +66,8 @@ function render() {
         el.setAttribute('aria-current', el.dataset.page === page ? 'page' : 'false');
         el.disabled = busy;
     });
+    const resetButton = $('#resetDemo');
+    if (resetButton) resetButton.disabled = busy;
     $('#profile').textContent = `${student.name} · ${student.major} · ${student.hours_per_week} hrs/week`;
     $('#saveStatus').textContent = dirty ? 'Team draft has unsaved changes' : 'Live community workspace';
     if (page === 'overview') renderOverview();
@@ -195,14 +197,35 @@ async function buildDeck() {
     deckId = crypto.randomUUID();
     await api('/api/decks', 'POST', {deck_id: deckId, student_id: STUDENT_ID, matches: deck.map(row => ({project_id: row.project.id, score: row.score}))});
 }
-async function initializeDashboard() {
+function clearLocalDemo() {
+    try { localStorage.removeItem(KEY); }
+    catch { try { localStorage.setItem(KEY, '{}'); } catch {} }
+}
+async function resetDemo() {
+    if (busy) return;
+    await initializeDashboard({fresh: true});
+}
+async function initializeDashboard(options = {}) {
+    const fresh = Boolean(options.fresh) || new URLSearchParams(location.search).get('demo') === '1';
     busy = true;
+    demoRun = fresh;
     $('#view').setAttribute('aria-busy', 'true');
-    $('#view').innerHTML = '<div class="empty"><h2>Loading your workspace…</h2></div>';
+    $('#view').innerHTML = `<div class="empty"><h2>${fresh ? 'Resetting the demo…' : 'Loading your workspace…'}</h2></div>`;
     try {
         if (!globalThis.BridgeMatch?.scoreProject || !globalThis.BridgeMatch?.deckFromState) throw new Error('Load your existing matching/rank.js before app.js.');
         if (!Number.isSafeInteger(STUDENT_ID) || STUDENT_ID <= 0) throw new Error('Invalid student ID. Use ?student=1.');
-        let cached = {}; try { const value = JSON.parse(localStorage.getItem(KEY) || '{}'); if (value && typeof value === 'object') cached = value; } catch {}
+        if (fresh) {
+            clearLocalDemo();
+            await api(`/api/students/${STUDENT_ID}/demo-reset`, 'POST', {});
+            const params = new URLSearchParams(location.search);
+            if (params.has('demo') && globalThis.history?.replaceState) {
+                params.delete('demo');
+                const query = params.toString();
+                globalThis.history.replaceState(null, '', `${location.pathname || '/'}${query ? `?${query}` : ''}`);
+            }
+        }
+        let cached = {};
+        if (!fresh) try { const value = JSON.parse(localStorage.getItem(KEY) || '{}'); if (value && typeof value === 'object') cached = value; } catch {}
         [student, projects, members, history] = await Promise.all([
             api(`/api/students/${STUDENT_ID}`), api('/api/projects'), api('/api/students'), api(`/api/students/${STUDENT_ID}/history`)
         ]);
@@ -229,10 +252,22 @@ async function initializeDashboard() {
         }
         savedIds = Array.isArray(cached.savedIds) ? cached.savedIds.filter(id=>projectById(id)) : [];
         requestEvent = cached.requestEvent || null; introDismissed = Boolean(cached.introDismissed);
+        if (fresh) {
+            team = {project: null, slots: [], kept: [], round: 0, seen: []};
+            dirty = false;
+            pendingSwipe = null;
+            requestEvent = null;
+            introDismissed = false;
+            savedIds = [];
+            page = 'overview';
+        }
         community = await api('/api/community');
         if(requestEvent && team.kept.length===4)page='connect';
         pendingSwipe = null; busy = false; checkpoint(); render(); $('#view').setAttribute('aria-busy', 'false');
-        if(!student.survey_completed&&!introDismissed)openSurvey();
+        if(!student.survey_completed&&!introDismissed){
+            openSurvey();
+            if (fresh) notify('Demo reset. Your answers are filled in — continue to see your matches.');
+        }
     } catch (error) {
         busy = false;
         $('#view').innerHTML = `<div class="empty"><h2>Could not load the workspace</h2><p>${esc(error.message)}</p><button onclick="initializeDashboard()">Retry</button></div>`;
