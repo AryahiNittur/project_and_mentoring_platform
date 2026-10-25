@@ -1,0 +1,8 @@
+{
+  "name": "bridge",
+  "private": true,
+  "scripts": {
+    "test": "node --test frontend/matching/rank.test.js frontend/matching/logistic.test.js",
+    "fit": "node frontend/matching/fit.js"
+  }
+}
