@@ -92,6 +92,54 @@ class BridgeApiTests(unittest.TestCase):
             with self.subTest(changed=changed):
                 self.assertIn(self.client.put('/api/students/1/team', json={**draft, **changed}).status_code, (404, 422))
 
+    def test_team_requests_reach_every_inbox_and_retries_do_not_duplicate(self):
+        self.client.put('/api/students/1/team', json={'project_id': 1, 'slots': [2,3,4,5], 'kept': [2,3,4,5], 'round': 1})
+        body = {'event_id': str(uuid4()), 'project_id': 1, 'member_ids': [2,3,4,5], 'message': 'Let us build a robot together.'}
+        result = self.client.post('/api/students/1/connection-requests', json=body)
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(len(result.json()['requests']), 4)
+        self.assertTrue(self.client.post('/api/students/1/connection-requests', json=body).json()['duplicate'])
+        for member_id in (2,3,4,5):
+            inbox = self.client.get(f'/api/students/{member_id}').json()['connection_inbox']
+            self.assertEqual(len(inbox), 1)
+            self.assertEqual(next(iter(inbox.values()))['from_id'], 1)
+            self.assertEqual(next(iter(inbox.values()))['status'], 'pending')
+        sender = self.client.get('/api/students/1').json()
+        self.assertEqual(len(sender['connection_requests']), 4)
+        self.assertNotIn('help_offers', sender)
+        request_id = result.json()['requests'][0]['id']
+        response = self.client.put(f'/api/students/2/connection-requests/{request_id.replace("#", "%23")}', json={'sender_id': 1, 'decision': 'accepted'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.client.get('/api/students/1').json()['connection_requests'][request_id]['status'], 'accepted')
+        self.assertEqual(self.client.get('/api/students/2').json()['connection_inbox'][request_id]['status'], 'accepted')
+
+    def test_connection_requests_require_saved_team(self):
+        body = {'event_id': str(uuid4()), 'project_id': 1, 'member_ids': [2,3,4,5], 'message': 'Build together'}
+        self.assertEqual(self.client.post('/api/students/1/connection-requests', json=body).status_code, 409)
+        self.assertNotIn('connection_inbox', self.client.get('/api/students/2').json())
+
+    def test_help_credit_requires_confirmation_and_counts_once(self):
+        self.assertEqual(self.client.post('/api/students/1/help-offers', json={'project_id': 1}).status_code, 200)
+        rows = self.client.get('/api/community').json()
+        self.assertEqual(next(r for r in rows if r['id'] == 1)['helps'], 0)
+        for _ in range(2):
+            response = self.client.post('/api/students/1/help-offers/1/demo-confirm', json={})
+            self.assertEqual(response.status_code, 200, response.text)
+        rows = self.client.get('/api/community').json()
+        current = next(r for r in rows if r['id'] == 1)
+        self.assertEqual(current['helps'], 1)
+        self.assertEqual(current['demo_helps'], 1)
+        self.assertEqual(self.client.post('/api/students/1/help-offers/999/demo-confirm', json={}).status_code, 404)
+
+    def test_demo_endorsement_is_labeled_and_saved_without_overwriting_profile(self):
+        body = {'event_id': str(uuid4()), 'author': 'Jamie', 'text': 'Helped me understand our robot project.'}
+        for _ in range(2):
+            self.assertEqual(self.client.post('/api/students/1/endorsements', json=body).status_code, 200)
+        student = self.client.get('/api/students/1').json()
+        self.assertEqual(student['languages'], ['Python'])
+        self.assertEqual(len(student['endorsements']), 1)
+        self.assertTrue(next(iter(student['endorsements'].values()))['demo'])
+
     def test_frontend_is_served_after_api_routes(self):
         self.assertEqual(self.client.get('/').status_code, 200)
         self.assertIn('matching/rank.js', self.client.get('/').text)

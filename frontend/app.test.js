@@ -5,20 +5,21 @@ const vm = require('node:vm');
 const {webcrypto} = require('node:crypto');
 const BridgeMatch = require('./matching/rank.js');
 const BridgeTeam = require('./team.js');
+const communitySource = fs.readFileSync(require('node:path').join(__dirname, 'community.js'), 'utf8');
 const source = fs.readFileSync(require('node:path').join(__dirname, 'app.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-async function start({failSwipe = false, failLoad = false, remoteDraft} = {}) {
+async function start({failSwipe = false, failLoad = false, remoteDraft, surveyCompleted = true} = {}) {
     const calls = [], listeners = {}, elements = new Map(), cache = new Map();
     const element = selector => {
         if (!elements.has(selector)) elements.set(selector, {innerHTML: '', textContent: '',
-            classList: {toggle() {}}, setAttribute() {}, focus() {}, dataset: {},
+            value: '', classList: {toggle() {}}, setAttribute() {}, focus() {}, dataset: {},
             closest() { return null; }});
         return elements.get(selector);
     };
     const people = Array.from({length: 13}, (_, i) => ({id: i + 1, name: `Database Person ${i+1}`,
         languages: ['Python'], interests: ['Robotics'], learn: ['Robotics'], experience: 3,
-        hours_per_week: i === 12 ? '8+' : 6, major: 'Engineering', year: 'Junior'}));
+        survey_completed: surveyCompleted, hours_per_week: i === 12 ? '8+' : 6, major: 'Engineering', year: 'Junior'}));
     const projects = [1,2].map(id => ({id, title: `Database Project ${id}`, org: 'Honda',
         description: 'A database description', languages: ['Python'], interests: ['Robotics'],
         learn_outcomes: ['Robotics'], target_experience: 3, hours_per_week: 6, weeks: 4, spots: 4}));
@@ -27,7 +28,7 @@ async function start({failSwipe = false, failLoad = false, remoteDraft} = {}) {
         localStorage: {getItem: k => cache.get(k) || null, setItem: (k,v) => cache.set(k,v)},
         confirm: () => true, setTimeout: fn => { queueMicrotask(fn); return 1; }, clearTimeout() {},
         document: {querySelector: element, querySelectorAll: () => [],
-            body: {classList: {toggle() {}}}, addEventListener: (event, fn) => listeners[event] = fn},
+            body: {style: {}, classList: {toggle() {}}}, addEventListener: (event, fn) => listeners[event] = fn},
         window: {addEventListener() {}},
         fetch: async (path, options) => {
             const body = options.body ? JSON.parse(options.body) : undefined;
@@ -38,10 +39,11 @@ async function start({failSwipe = false, failLoad = false, remoteDraft} = {}) {
             if (path === '/api/students/1') value = {...people[0], ...(remoteDraft ? {dream_team_draft: remoteDraft} : {})};
             if (path === '/api/students') value = people;
             if (path === '/api/projects') value = projects;
+            if (path === '/api/community') value = people.map(p => ({...p, helps:0}));
             if (path.endsWith('/history')) value = {passed_ids: [], liked_ids: []};
             return {ok: true, json: async () => value};
         }};
-    vm.createContext(context); vm.runInContext(source, context); await tick();
+    vm.createContext(context); vm.runInContext(communitySource, context); vm.runInContext(source, context); await tick();
     return {context, calls, listeners, element, run: text => vm.runInContext(text, context), allowSwipe: () => failSwipe = false};
 }
 
@@ -110,4 +112,54 @@ test('an AWS read failure shows an error instead of sample projects', async () =
     const app = await start({failLoad: true});
     assert.match(app.element('#view').innerHTML, /AWS unavailable/);
     assert.equal(app.calls.filter(c => c.path === '/api/decks').length, 0);
+});
+
+
+test('original community journeys, leaderboard, and profile remain available', async () => {
+    const app = await start();
+    assert.match(app.element('#view').innerHTML, /Your community tier/);
+    assert.match(app.element('#view').innerHTML, /Every contribution counts/);
+    assert.match(app.element('#view').innerHTML, /YOUR GROWTH/);
+    app.context.setPage('leaderboard');
+    assert.match(app.element('#view').innerHTML, /Small acts. Lasting impact/);
+    app.context.setPage('profile');
+    assert.match(app.element('#view').innerHTML, /What peers say/);
+    app.context.setPage('giveback');
+    assert.match(app.element('#view').innerHTML, /Offer your skills/);
+});
+
+test('first-visit intro survey has three steps and writes preferences before rebuilding deck', async () => {
+    const app = await start({surveyCompleted: false});
+    assert.match(app.element('#overlay').innerHTML, /What brings you to Bridge/);
+    await app.context.nextSurveyStep();
+    assert.match(app.element('#overlay').innerHTML, /What can you share/);
+    await app.context.nextSurveyStep();
+    assert.match(app.element('#overlay').innerHTML, /Make it fit your life/);
+    await app.context.nextSurveyStep();
+    const saved = app.calls.find(c => c.path === '/api/students/1' && c.method === 'PUT');
+    assert.equal(saved.body.languages[0], 'Python');
+    assert.equal(saved.body.goal, 'Both');
+    assert.equal(app.calls.filter(c => c.path === '/api/decks').length, 2);
+});
+
+test('four kept teammates lead to review and send, without automatically sending requests', async () => {
+    const app = await start();
+    app.context.selectProject(1);
+    const ids = JSON.parse(app.run('JSON.stringify(team.slots)'));
+    ids.forEach(id => app.context.togglePerson(id));
+    assert.equal(app.run('page'), 'connect');
+    assert.match(app.element('#view').innerHTML, /Send connection requests/);
+    assert.equal(app.calls.filter(c => c.path.endsWith('/connection-requests')).length, 0);
+    app.element('#connectionMessage').value = 'Let us build this together!';
+    await app.context.sendTeamRequests({preventDefault(){}});
+    const request = app.calls.find(c => c.path.endsWith('/connection-requests'));
+    assert.deepEqual(request.body.member_ids, ids);
+    assert.equal(app.run('page'), 'connections');
+});
+
+test('no infrastructure names or pause control appear in product buttons', () => {
+    const html = fs.readFileSync(require('node:path').join(__dirname, 'index.html'), 'utf8');
+    assert.doesNotMatch(html, /id="motion"|Pause motion|Resume motion/);
+    assert.doesNotMatch(source + communitySource, /Save team draft to AWS|saved to DynamoDB/);
+    assert.match(html, /scene\.js/);
 });

@@ -12,26 +12,34 @@
     <header class="header">
         <a class="brand" href="./" aria-label="Bridge home"><span>b.</span>bridge<span class="branddot">.</span></a>
         <nav aria-label="Workspace">
-            <button data-page="discover" class="active">Discover projects</button>
+            <button data-page="overview" class="active">Overview</button>
+            <button data-page="discover">Discover</button>
             <button data-page="team">Projects & people</button>
-            <button data-page="workspace">My workspace</button>
+            <button data-page="giveback">Give back</button>
+            <button data-page="connections">My connections</button>
+            <button data-page="workspace">Saved projects</button>
+            <button data-page="leaderboard">Leaderboard</button>
+            <button data-page="profile">My profile</button>
         </nav>
-        <div class="headerend"><span class="campus">● OHIO STATE</span><button id="motion">Pause motion</button></div>
+        <span class="campus">● OHIO STATE</span>
     </header>
     <main>
         <section class="intro" aria-label="Your community">
             <div><div class="eyebrow">GOOD PEOPLE. REAL PROJECTS. BIG POSSIBILITIES.</div><p>Find your project.<br><em>Build your dream team.</em></p></div>
-            <div class="introart" aria-hidden="true"><span>✳</span><i>IDEAS CONNECT HERE</i></div>
+            <div class="universe" id="universe"><div class="orbitalfallback" aria-hidden="true"><span>✳</span><i></i><i></i></div><canvas id="network" aria-label="Decorative three-dimensional community constellation"></canvas><div class="orbitlabel">IDEAS CONNECT HERE ✦</div></div>
         </section>
         <div class="identity"><span id="profile">Loading your student profile…</span><span id="saveStatus" role="status"></span></div>
-        <section id="view" tabindex="-1" aria-label="Community workspace" aria-busy="true"><div class="empty"><h2>Loading your AWS workspace…</h2></div></section>
+        <section id="view" tabindex="-1" aria-label="Community workspace" aria-busy="true"><div class="empty"><h2>Loading your workspace…</h2></div></section>
         <footer><a class="brand" href="./">bridge.</a><span>Made for Buckeyes. Built for what’s next.</span><small>HackOHI/O · Student project demo</small></footer>
     </main>
+    <div id="overlay"></div>
     <div id="toast" role="status" aria-live="polite"></div>
     <noscript>Please enable JavaScript to use the Bridge workspace.</noscript>
     <!-- Keep the team's existing pure ranker before the UI. -->
     <script src="matching/rank.js"></script>
     <script src="team.js"></script>
+    <script src="community.js"></script>
     <script src="app.js"></script>
+    <script type="module" src="scene.js"></script>
 </body>
 </html>
