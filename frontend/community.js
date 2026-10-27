@@ -109,3 +109,85 @@ async function nextSurveyStep(){
 }
 function openReview(){reviewEvent=null;modal(`<div class="eyebrow">DEMO PEER VIEW</div><h2 id="modalTitle">Tell their story.</h2><p>Simulate a teammate writing an endorsement for ${esc(student.name)}.</p><form onsubmit="submitReview(event)"><label for="reviewAuthor">Your name</label><input id="reviewAuthor" required maxlength="60"><label for="reviewText">What was it like working together?</label><textarea id="reviewText" required minlength="15" maxlength="600" rows="4"></textarea><div class="actions"><small>Saved as a demo peer endorsement.</small><button class="primary">Add endorsement</button></div></form>`)}
 async function submitReview(event){event.preventDefault();if(busy)return;reviewEvent||={event_id:crypto.randomUUID(),author:$('#reviewAuthor').value.trim(),text:$('#reviewText').value.trim()};busy=true;try{await api(`/api/students/${STUDENT_ID}/endorsements`,'POST',reviewEvent);await reloadCommunity();closeModal();notify('Demo peer endorsement added.')}catch(error){notify(error.message)}finally{busy=false;render()}}
+
+// Project commenting system
+async function loadComments(projectId){
+    try{
+        const data=await api(`/api/projects/${projectId}/comments`);
+        projectComments.set(projectId,data);
+        return data;
+    }catch(error){
+        notify('Could not load comments.');
+        return {comments:[],count:0};
+    }
+}
+async function openComments(projectId){
+    if(busy)return;
+    const project=projectById(projectId);
+    if(!project)return;
+    busy=true;
+    const data=await loadComments(projectId);
+    busy=false;
+    paintComments(projectId,project,data);
+}
+function paintComments(projectId,project,data){
+    const comments=data.comments||[];
+    const commentsHtml=comments.length?comments.map(c=>{
+        const canDelete=c.student_id===STUDENT_ID;
+        const timeAgo=formatTimeAgo(c.created_at);
+        return `<div class="comment" data-comment-id="${esc(c.comment_id)}"><div class="commentheader"><strong>${esc(c.student_name)}</strong><small>${timeAgo}</small>${canDelete?`<button onclick="deleteComment(${projectId},'${esc(c.comment_id)}')" class="deletecomment" aria-label="Delete comment">×</button>`:''}</div><p>${esc(c.text)}</p></div>`;
+    }).join(''):'<p class="hint">No comments yet. Be the first to share your thoughts!</p>';
+    modal(`<div class="eyebrow">PROJECT DISCUSSION</div><h2 id="modalTitle">${esc(project.title)}</h2><p>${comments.length} comment${comments.length!==1?'s':''}</p><div class="commentslist" style="max-height:300px;overflow-y:auto;margin:16px 0;">${commentsHtml}</div><form onsubmit="submitComment(event,${projectId})"><label for="commentText">Add your comment</label><textarea id="commentText" required minlength="1" maxlength="500" rows="3" placeholder="Ask a question, share insights, or discuss this project..."></textarea><div class="actions"><button type="button" onclick="closeModal()">Close</button><button class="primary" ${busy?'disabled':''}>Post comment</button></div></form>`);
+}
+async function submitComment(event,projectId){
+    event.preventDefault();
+    if(busy)return;
+    const text=$('#commentText').value.trim();
+    if(!text)return;
+    busy=true;
+    try{
+        await api(`/api/projects/${projectId}/comments?student_id=${STUDENT_ID}`,'POST',{comment_id:crypto.randomUUID(),text});
+        const data=await loadComments(projectId);
+        const project=projectById(projectId);
+        notify('Comment posted!');
+        paintComments(projectId,project,data);
+        render();
+    }catch(error){
+        notify(error.message);
+    }finally{
+        busy=false;
+    }
+}
+async function deleteComment(projectId,commentId){
+    if(busy||!confirm('Delete this comment?'))return;
+    busy=true;
+    try{
+        await api(`/api/projects/${projectId}/comments/${commentId}?student_id=${STUDENT_ID}`,'DELETE');
+        const data=await loadComments(projectId);
+        const project=projectById(projectId);
+        notify('Comment deleted.');
+        paintComments(projectId,project,data);
+        render();
+    }catch(error){
+        notify(error.message);
+    }finally{
+        busy=false;
+    }
+}
+function formatTimeAgo(timestamp){
+    try{
+        const date=new Date(timestamp);
+        const now=new Date();
+        const seconds=Math.floor((now-date)/1000);
+        if(seconds<60)return 'just now';
+        const minutes=Math.floor(seconds/60);
+        if(minutes<60)return `${minutes}m ago`;
+        const hours=Math.floor(minutes/60);
+        if(hours<24)return `${hours}h ago`;
+        const days=Math.floor(hours/24);
+        if(days<7)return `${days}d ago`;
+        return date.toLocaleDateString();
+    }catch{
+        return '';
+    }
+}

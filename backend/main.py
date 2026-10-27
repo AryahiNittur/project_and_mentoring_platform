@@ -479,5 +479,95 @@ def get_community():
         raise unavailable(error) from error
 
 
+# Project commenting system
+class CommentInput(BaseModel):
+    comment_id: UUID
+    text: str = Field(min_length=1, max_length=500)
+
+
+@app.post('/api/projects/{project_id}/comments')
+def add_project_comment(project_id: int, student_id: int, body: CommentInput):
+    """Add a comment to a project. Comments are stored in the Projects table."""
+    try:
+        student = get_student(student_id)
+        project = get_record('Projects', f'project#{project_id}')
+
+        # Initialize comments map if it doesn't exist
+        try:
+            table('Projects').update_item(
+                Key={'pk': f'project#{project_id}'},
+                UpdateExpression='SET comments = if_not_exists(comments, :empty)',
+                ExpressionAttributeValues={':empty': {}}
+            )
+        except (BotoCoreError, ClientError):
+            pass
+
+        comment = {
+            'student_id': student_id,
+            'student_name': student.get('name', 'Anonymous'),
+            'text': body.text,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+
+        table('Projects').update_item(
+            Key={'pk': f'project#{project_id}'},
+            UpdateExpression='SET comments.#key = :comment',
+            ExpressionAttributeNames={'#key': str(body.comment_id)},
+            ExpressionAttributeValues={':comment': comment}
+        )
+
+        return {'saved': True, 'comment': comment}
+    except (BotoCoreError, ClientError) as error:
+        raise unavailable(error) from error
+
+
+@app.get('/api/projects/{project_id}/comments')
+def get_project_comments(project_id: int):
+    """Get all comments for a project."""
+    try:
+        project = get_record('Projects', f'project#{project_id}')
+        comments = project.get('comments', {})
+
+        # Convert to list and add comment_id
+        comment_list = [
+            {**comment, 'comment_id': comment_id}
+            for comment_id, comment in comments.items()
+        ]
+
+        # Sort by created_at, newest first
+        comment_list.sort(key=lambda c: c.get('created_at', ''), reverse=True)
+
+        return jsonable({'comments': comment_list, 'count': len(comment_list)})
+    except (BotoCoreError, ClientError) as error:
+        raise unavailable(error) from error
+
+
+@app.delete('/api/projects/{project_id}/comments/{comment_id}')
+def delete_project_comment(project_id: int, comment_id: str, student_id: int):
+    """Delete a comment. Only the comment author can delete their comment."""
+    try:
+        project = get_record('Projects', f'project#{project_id}')
+        comments = project.get('comments', {})
+
+        if comment_id not in comments:
+            raise HTTPException(404, 'Comment not found.')
+
+        comment = comments[comment_id]
+        if comment.get('student_id') != student_id:
+            raise HTTPException(403, 'You can only delete your own comments.')
+
+        table('Projects').update_item(
+            Key={'pk': f'project#{project_id}'},
+            UpdateExpression='REMOVE comments.#key',
+            ExpressionAttributeNames={'#key': comment_id}
+        )
+
+        return {'deleted': True}
+    except HTTPException:
+        raise
+    except (BotoCoreError, ClientError) as error:
+        raise unavailable(error) from error
+
+
 # Static hosting goes last, so it cannot intercept API routes.
 app.mount('/', StaticFiles(directory=ROOT / 'frontend', html=True), name='frontend')

@@ -704,3 +704,14 @@ footer small {
 @media(max-width:1000px){.header nav{order:3;flex-basis:100%;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto}.header .campus{margin-left:auto}.header nav button{white-space:nowrap}.stats{grid-template-columns:repeat(2,1fr)}.communitylayout{grid-template-columns:minmax(0,1fr)}.chosencrew,.tiergrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.header nav{gap:2px}.header nav button{font-size:10px;padding:10px}.header .campus{display:block;font-size:9px}.universe{width:32%;height:190px}.orbitalfallback span{font-size:100px}.orbitalfallback i{width:120px;height:100px}.orbitlabel{display:none}.intro>div:first-child{max-width:68%}.intro{gap:10px}.intro p{font-size:31px}.stats{gap:10px}.panel{padding:19px}.stats strong.tiername{font-size:20px}.panelheading{align-items:flex-start;flex-direction:column}.modalback{padding:12px}.modal{padding:25px}.chosencrew{gap:10px}.chosencrew>div{padding:13px}.chosencrew b{font-size:12px}.tiergrid{gap:10px}.tiergrid h2{font-size:15px}}
 
 .saveproject{font-size:11px;margin-bottom:14px}.saveproject[aria-pressed="true"]{color:var(--lime);border-color:var(--lime)}
+
+/* Comment system styles */
+.comment{border-bottom:1px solid var(--line);padding:16px 0;position:relative}
+.comment:last-child{border-bottom:0}
+.commentheader{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.commentheader strong{font-size:13px;color:var(--text)}
+.commentheader small{color:var(--muted);font-size:10px;margin-left:auto}
+.comment p{font-size:13px;line-height:1.6;margin:0;color:#ddd}
+.deletecomment{position:absolute;top:12px;right:0;background:none;border:1px solid transparent;color:var(--muted);font-size:18px;padding:4px 8px;cursor:pointer;border-radius:6px}
+.deletecomment:hover{border-color:#ff5d5d;color:#ff5d5d;background:#ff5d5d11}
+.commentslist{background:#0d1018;border:1px solid var(--line);border-radius:12px;padding:18px}

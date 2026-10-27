@@ -9,6 +9,7 @@ let team = {project: null, slots: [], kept: [], round: 0, seen: []};
 let page = 'overview', busy = false, dirty = false, toastTimer;
 let motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 let pendingSwipe = null, scores = new Map(), savedIds = [], demoRun = false;
+let projectComments = new Map();
 
 async function api(path, method = 'GET', body) {
     const response = await fetch(path, {method, headers: {'Content-Type': 'application/json'},
@@ -49,11 +50,15 @@ function fire() {
 }
 function safeVideo(value) { try { const url = new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch { return ''; } }
 function projectCard(p, canChoose = true) {
+    const commentCount = projectComments.get(p.id)?.count || 0;
     return `<article class="project" data-project="${p.id}">
         <div class="projectart"><div class="orb" aria-hidden="true">✳</div><span class="badge">${scores.get(p.id)}% recommendation</span></div>
         <div class="projectbody"><div class="eyebrow">${esc(p.org || 'Community project')}</div>
         <h2>${esc(p.title)}</h2><p>${esc(p.description)}</p><div class="tags">${tags(p.languages)}${tags(p.interests)}</div>
+        <div style="display:flex;gap:8px;margin:12px 0;">
         <button class="saveproject" aria-pressed="${savedIds.includes(p.id)}" onclick="saveProject(${p.id})">${savedIds.includes(p.id) ? '★ Saved' : '☆ Save project'}</button>
+        <button onclick="openComments(${p.id})">💬 Comments${commentCount > 0 ? ` (${commentCount})` : ''}</button>
+        </div>
         <div class="facts">${esc(p.hours_per_week)} hrs/week · ${esc(p.weeks)} weeks · ${esc(p.spots)} project openings</div>
         <p class="reason">${esc(BridgeMatch.reasonFor(student, p))}</p>
         ${safeVideo(p.video) ? `<p class="projectvideo"><a href="${esc(safeVideo(p.video))}" target="_blank" rel="noopener noreferrer">Watch project video ↗</a></p>` : ''}
@@ -196,6 +201,18 @@ async function buildDeck() {
         .filter(row => row.project.spots > 0 && !history.passed_ids.includes(row.project.id));
     deckId = crypto.randomUUID();
     await api('/api/decks', 'POST', {deck_id: deckId, student_id: STUDENT_ID, matches: deck.map(row => ({project_id: row.project.id, score: row.score}))});
+    // Preload comment counts for all projects
+    await loadAllCommentCounts();
+}
+async function loadAllCommentCounts() {
+    try {
+        await Promise.all(projects.map(async p => {
+            try {
+                const data = await api(`/api/projects/${p.id}/comments`);
+                projectComments.set(p.id, data);
+            } catch {}
+        }));
+    } catch {}
 }
 function clearLocalDemo() {
     try { localStorage.removeItem(KEY); }
