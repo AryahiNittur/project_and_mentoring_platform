@@ -104,6 +104,10 @@ class StudentUpdate(BaseModel):
     major: str = Field(default="", max_length=80)
     experience: int = Field(ge=1, le=5)
     hours_per_week: Literal[2, 4, 6, 8, "8+"]
+    work_preference: Literal["Prefer working alone", "Flexible", "Prefer working in groups"] = "Flexible"
+    personality_type: Literal["Introverted", "Balanced", "Extroverted"] = "Balanced"
+    learning_goal: Literal["Build portfolio", "Learn new tech", "Meet people", "Make impact"] = "Learn new tech"
+    communication_preference: Literal["Frequent check-ins", "Weekly syncs", "Async updates", "Independent work"] = "Weekly syncs"
 
     @field_validator("languages", "interests", "learn")
     @classmethod
@@ -141,7 +145,9 @@ def update_student(student_id: int, body: StudentUpdate):
             UpdateExpression=(
                 "SET languages = :languages, interests = :interests, learn = :learn, "
                 "#year = :year, major = :major, experience = :experience, "
-                "hours_per_week = :hours, survey_completed = :completed, goal = :goal"
+                "hours_per_week = :hours, survey_completed = :completed, goal = :goal, "
+                "work_preference = :work_pref, personality_type = :personality, "
+                "learning_goal = :learning_goal, communication_preference = :comm_pref"
             ),
             ExpressionAttributeNames={"#year": "year"},
             ExpressionAttributeValues={
@@ -154,6 +160,10 @@ def update_student(student_id: int, body: StudentUpdate):
                 ":hours": values["hours_per_week"],
                 ":completed": True,
                 ":goal": values["goal"],
+                ":work_pref": values["work_preference"],
+                ":personality": values["personality_type"],
+                ":learning_goal": values["learning_goal"],
+                ":comm_pref": values["communication_preference"],
             },
         )
         return get_student(student_id)
